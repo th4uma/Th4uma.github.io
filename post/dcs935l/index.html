@@ -288,7 +288,8 @@ unicode: "f6d2"
     <li><a href="#验证">验证</a></li>
     <li><a href="#漏洞利用">漏洞利用</a>
       <ol>
-        <li><a href="#常见寄存器">常见寄存器</a></li>
+        <li><a href="#原理">原理</a></li>
+        <li><a href="#构造可回显rce栈溢出">构造可回显rce栈溢出</a></li>
       </ol>
     </li>
   </ol>
@@ -379,7 +380,7 @@ unicode: "f6d2"
 
 
                 <time class="article-time--reading">
-                    阅读时长: 8 分钟
+                    阅读时长: 9 分钟
                 </time>
             </div>
         
@@ -630,9 +631,22 @@ unicode: "f6d2"
 <p>最终来到<code>strcpy(v28, DANGER_IVAR);</code>，成功产生了栈溢出</p>
 <img src="21.png" style="width: 80%;" />
 <h2 id="漏洞利用">漏洞利用
-</h2><p>这一步需要构造可回显rce栈溢出</p>
-<h3 id="常见寄存器">常见寄存器
-</h3><p>程序之所以会从上到下一句句执行，是因为x86架构中的ip寄存器，也是mips架构的pc寄存器中，存放了下一条指令在内存中的地址。也就是说是这个寄存器决定程序执行到了哪一步，只要能控制这个寄存器，就可以控制程序执行到的位置</p>
+</h2><h3 id="原理">原理
+</h3><p><strong>常见寄存器</strong>：</p>
+<p><code>pc</code>：程序之所以会从上到下一句句执行，是因为<code>x86</code>架构中的<code>ip</code>寄存器，也是<code>mips</code>架构的<code>pc</code>寄存器中，存放了下一条指令在内存中的地址。也就是说是这个寄存器决定程序执行到了哪一步，只要能控制这个寄存器，就可以控制程序执行到的位置</p>
+<p><code>sp</code>：函数中的变量会按照顺序保存在栈上，sp寄存器就是一个指向当前栈顶的栈指针。栈从高地址向低地址增长，一般情况下两行地址差是4字节</p>
+<p><code>a0</code>、<code>a1</code>：<code>an</code>格式的寄存器是参数寄存器，用于给函数传递参数</p>
+<p><strong>函数调用流程</strong>：</p>
+<p>在调用前先向栈顶压入函数的下一行地址作为返回地址，然后压入<code>fp</code>以及一些预留空间，随后更新<code>sp</code>寄存器</p>
+<p>调用后，来到变量定义部分，程序会将变量预留在栈中，然后<code>sp</code>向低地址移动变量的大小，比如说<code>int a</code>就是移动4字节。变量的值在初始化前是混乱的，初始化后才是确定的值</p>
+<p>将变量的值存储在栈上，也就是存储在上一步预留的空间。字符串或者数组的存储和栈增长的方向相反，是从低地址向高地址存储</p>
+<p>函数执行到最后会进行<code>return</code>，也就是取出当前函数栈帧第一行保存的地址，赋值给<code>ip</code>寄存器，同时会进行恢复<code>sp</code>寄存器到上一个函数栈帧顶，以及恢复上一个函数的寄存器等操作，然后继续执行</p>
+<p><strong>栈溢出原理</strong>：</p>
+<p>假如向原本预留了<code>40</code>字节的变量中存入<code>100</code>字节的值，那么在预留内存满后，多出来的部分会继续向高地址存储，最终覆盖最初存储的返回地址。继续往下执行到<code>return</code>后，它会取到错误的地址并赋值给<code>ip</code>寄存器，这个地址可能指向错误的位置，更可能在内存中不存在，程序就会直接崩溃</p>
+<p><strong>栈溢出的利用</strong>：</p>
+<p>如果在溢出的输入中夹杂一个地址，让这个地址正好覆盖在返回地址的位置，而地址指向的是某个后门函数，那么函数返回后，程序执行流被劫持到后门函数，就导致非法执行</p>
+<h3 id="构造可回显rce栈溢出">构造可回显rce栈溢出
+</h3><p>由于命令行无法处理部分特殊字符，这一步采用python来实现</p>
 
 </section>
 
@@ -1024,7 +1038,7 @@ unicode: "f6d2"
       共发表文章 
       <span class="number-highlight">33</span> 
       篇 ，总计 
-      <span class="number-highlight">161.85</span> 
+      <span class="number-highlight">162.49</span> 
       k 字
   </div>
   <div>
@@ -1233,9 +1247,9 @@ if (busuanziValue) {
 </style>
 
 
-<script src="/js/renderer.js?v=1788709998"></script>
+<script src="/js/renderer.js?v=1788881292"></script>
 
-<script defer src="/js/codex-bg-motion.js?v=1788709998"></script>
+<script defer src="/js/codex-bg-motion.js?v=1788881292"></script>
 
 
 <script>

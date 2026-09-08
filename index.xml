@@ -249,9 +249,22 @@
 &lt;p&gt;最终来到&lt;code&gt;strcpy(v28, DANGER_IVAR);&lt;/code&gt;，成功产生了栈溢出&lt;/p&gt;
 &lt;img src=&#34;21.png&#34; style=&#34;width: 80%;&#34; /&gt;
 &lt;h2 id=&#34;漏洞利用&#34;&gt;漏洞利用
-&lt;/h2&gt;&lt;p&gt;这一步需要构造可回显rce栈溢出&lt;/p&gt;
-&lt;h3 id=&#34;常见寄存器&#34;&gt;常见寄存器
-&lt;/h3&gt;&lt;p&gt;程序之所以会从上到下一句句执行，是因为x86架构中的ip寄存器，也是mips架构的pc寄存器中，存放了下一条指令在内存中的地址。也就是说是这个寄存器决定程序执行到了哪一步，只要能控制这个寄存器，就可以控制程序执行到的位置&lt;/p&gt;
+&lt;/h2&gt;&lt;h3 id=&#34;原理&#34;&gt;原理
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;常见寄存器&lt;/strong&gt;：&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;pc&lt;/code&gt;：程序之所以会从上到下一句句执行，是因为&lt;code&gt;x86&lt;/code&gt;架构中的&lt;code&gt;ip&lt;/code&gt;寄存器，也是&lt;code&gt;mips&lt;/code&gt;架构的&lt;code&gt;pc&lt;/code&gt;寄存器中，存放了下一条指令在内存中的地址。也就是说是这个寄存器决定程序执行到了哪一步，只要能控制这个寄存器，就可以控制程序执行到的位置&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;sp&lt;/code&gt;：函数中的变量会按照顺序保存在栈上，sp寄存器就是一个指向当前栈顶的栈指针。栈从高地址向低地址增长，一般情况下两行地址差是4字节&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;a0&lt;/code&gt;、&lt;code&gt;a1&lt;/code&gt;：&lt;code&gt;an&lt;/code&gt;格式的寄存器是参数寄存器，用于给函数传递参数&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;函数调用流程&lt;/strong&gt;：&lt;/p&gt;
+&lt;p&gt;在调用前先向栈顶压入函数的下一行地址作为返回地址，然后压入&lt;code&gt;fp&lt;/code&gt;以及一些预留空间，随后更新&lt;code&gt;sp&lt;/code&gt;寄存器&lt;/p&gt;
+&lt;p&gt;调用后，来到变量定义部分，程序会将变量预留在栈中，然后&lt;code&gt;sp&lt;/code&gt;向低地址移动变量的大小，比如说&lt;code&gt;int a&lt;/code&gt;就是移动4字节。变量的值在初始化前是混乱的，初始化后才是确定的值&lt;/p&gt;
+&lt;p&gt;将变量的值存储在栈上，也就是存储在上一步预留的空间。字符串或者数组的存储和栈增长的方向相反，是从低地址向高地址存储&lt;/p&gt;
+&lt;p&gt;函数执行到最后会进行&lt;code&gt;return&lt;/code&gt;，也就是取出当前函数栈帧第一行保存的地址，赋值给&lt;code&gt;ip&lt;/code&gt;寄存器，同时会进行恢复&lt;code&gt;sp&lt;/code&gt;寄存器到上一个函数栈帧顶，以及恢复上一个函数的寄存器等操作，然后继续执行&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;栈溢出原理&lt;/strong&gt;：&lt;/p&gt;
+&lt;p&gt;假如向原本预留了&lt;code&gt;40&lt;/code&gt;字节的变量中存入&lt;code&gt;100&lt;/code&gt;字节的值，那么在预留内存满后，多出来的部分会继续向高地址存储，最终覆盖最初存储的返回地址。继续往下执行到&lt;code&gt;return&lt;/code&gt;后，它会取到错误的地址并赋值给&lt;code&gt;ip&lt;/code&gt;寄存器，这个地址可能指向错误的位置，更可能在内存中不存在，程序就会直接崩溃&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;栈溢出的利用&lt;/strong&gt;：&lt;/p&gt;
+&lt;p&gt;如果在溢出的输入中夹杂一个地址，让这个地址正好覆盖在返回地址的位置，而地址指向的是某个后门函数，那么函数返回后，程序执行流被劫持到后门函数，就导致非法执行&lt;/p&gt;
+&lt;h3 id=&#34;构造可回显rce栈溢出&#34;&gt;构造可回显rce栈溢出
+&lt;/h3&gt;&lt;p&gt;由于命令行无法处理部分特殊字符，这一步采用python来实现&lt;/p&gt;
 </description>
         </item>
         <item>
