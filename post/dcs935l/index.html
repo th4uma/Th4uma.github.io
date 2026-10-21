@@ -288,13 +288,14 @@ unicode: "f6d2"
     <li><a href="#验证">验证</a>
       <ol>
         <li><a href="#成功溢出">成功溢出</a></li>
-        <li><a href="#错误修改">错误修改</a></li>
+        <li><a href="#错误修正">错误修正</a></li>
       </ol>
     </li>
     <li><a href="#漏洞利用">漏洞利用</a>
       <ol>
         <li><a href="#原理">原理</a></li>
-        <li><a href="#构造可回显rce栈溢出">构造可回显rce栈溢出</a></li>
+        <li><a href="#控制pc寄存器">控制PC寄存器</a></li>
+        <li><a href="#构造利用链">构造利用链</a></li>
       </ol>
     </li>
   </ol>
@@ -385,7 +386,7 @@ unicode: "f6d2"
 
 
                 <time class="article-time--reading">
-                    阅读时长: 10 分钟
+                    阅读时长: 11 分钟
                 </time>
             </div>
         
@@ -627,11 +628,11 @@ unicode: "f6d2"
 <img src="19.png" style="width: 100%;" />
 <p>最终来到<code>strcpy(v28, DANGER_IVAR);</code>，成功产生了栈溢出</p>
 <img src="21.png" style="width: 80%;" />
-<h3 id="错误修改">错误修改
-</h3><p>这里注意到产生溢出后继续执行，会产生报错，指向2B43D76C</p>
+<h3 id="错误修正">错误修正
+</h3><p>这里注意到产生溢出后继续执行，会产生报错，指向<code>2B43D76C</code></p>
 <img src="23.png" style="width: 80%;" />
-<p>在溢出这一句之后有这样的一句v19 = strtok(v28, &quot; &ldquo;);，也就是将字符串以空格分割，字符串中原本是空格的第一个位置会被替换成/x00，然后将前半部分的内容赋值v19。后面还有v20 = strtok(0, &quot; &ldquo;);，也就是接着上一句的位置再分割一次。为了防止报错，实现时应该在HNAP_AUTH里加上一个空格</p>
-<p>因此最终确认产生溢出，并保证程序正常执行需要如下条件成立：</p>
+<p>在溢出这一句之后有<code>v19 = strtok(v28, &quot; &quot;);</code>，也就是将字符串以空格分割，字符串中原本是空格的第一个位置会被替换成<code>/x00</code>，然后将前半部分的内容赋值给<code>v19</code>。后面还有<code>v20 = strtok(0, &quot; &quot;);</code>，也就是接着上一句的位置再分割一次，将后半部分的内容赋值给<code>v20</code>。为了防止报错，实现时应该在<code>HNAP_AUTH</code>的值中加上一个空格</p>
+<p><strong>因此最终确认产生溢出，并保证程序正常执行需要如下条件成立</strong>：</p>
 <ul>
 <li><code>REQUEST_METHOD=&quot;POST&quot;</code></li>
 <li><code>SOAP_ACTION=&quot;1&quot;</code></li>
@@ -646,6 +647,7 @@ unicode: "f6d2"
 </h3><p><strong>常见寄存器</strong>：</p>
 <p><code>pc</code>：程序之所以会从上到下一句句执行，是因为<code>x86</code>架构中的<code>ip</code>寄存器，也是<code>mips</code>架构的<code>pc</code>寄存器中，存放了下一条指令在内存中的地址。也就是说是这个寄存器决定程序执行到了哪一步，只要能控制这个寄存器，就可以控制程序执行到的位置</p>
 <p><code>sp</code>：函数中的变量会按照顺序保存在栈上，sp寄存器就是一个指向当前栈顶的栈指针。栈从高地址向低地址增长，一般情况下两行地址差是4字节</p>
+<p>ra：记录程序执行完成后返回的地址</p>
 <p><code>a0</code>、<code>a1</code>：<code>an</code>格式的寄存器是参数寄存器，用于给函数传递参数</p>
 <p><strong>函数调用流程</strong>：</p>
 <p>在调用前先向栈顶压入函数的下一行地址作为返回地址，然后压入<code>fp</code>以及一些预留空间，随后更新<code>sp</code>寄存器</p>
@@ -656,10 +658,9 @@ unicode: "f6d2"
 <p>假如向原本预留了<code>40</code>字节的变量中存入<code>100</code>字节的值，那么在预留内存满后，多出来的部分会继续向高地址存储，最终覆盖最初存储的返回地址。继续往下执行到<code>return</code>后，它会取到错误的地址并赋值给<code>ip</code>寄存器，这个地址可能指向错误的位置，更可能在内存中不存在，程序就会直接崩溃</p>
 <p><strong>栈溢出的利用</strong>：</p>
 <p>如果在溢出的输入中夹杂一个地址，让这个地址正好覆盖在返回地址的位置，而地址指向的是某个后门函数，那么函数返回后，程序执行流被劫持到后门函数，就会导致非法执行</p>
-<h3 id="构造可回显rce栈溢出">构造可回显rce栈溢出
-</h3><p>之前将HNAP_AUTH的值设定为多个a，那么溢出后的返回地址也会变成4个a的十六进制，这样便无法找到HNAP_AUTH中具体第几个字符覆盖了返回地址。因此这里需要采用cyclic字符串，也就是一种每四个字节都独一无二的字符串。然后通过获取返回地址的十六进制，在cyclic字符串中找到对应的四个字符，从而获取所需位置</p>
-<p>在溢出这一句之后有这样的一句v19 = strtok(v28, &quot; &ldquo;);，也就是将字符串以空格分割，字符串中原本是空格的第一个位置会被替换成/x00。后面还有v20 = strtok(0, &quot; &ldquo;);，也就是接着上一句的位置再分割一次。为了防止报错，实现时应该在HNAP_AUTH末尾加上两个空格</p>
-<p>由于命令行无法处理部分特殊字符，这一步采用python来实现</p>
+<h3 id="控制pc寄存器">控制PC寄存器
+</h3><p>之前将<code>HNAP_AUTH</code>的值设定为多个<code>a</code>，那么溢出后的返回地址也会变成4个a的十六进制，这样便无法找到<code>HNAP_AUTH</code>中具体第几个字符覆盖了返回地址。因此这里需要采用<code>cyclic</code>字符串，也就是一种每四个字节都独一无二的字符串。然后通过获取返回地址的十六进制，在<code>cyclic</code>字符串中找到对应的四个字符，从而获取所需位置</p>
+<p>由于命令行无法处理部分特殊字符，这一步采用<code>python</code>来实现</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -724,9 +725,21 @@ unicode: "f6d2"
 </span></span><span class="line"><span class="cl"><span class="p">)</span>
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>运行程序后进行调试，可以看到提示返回值是6A61616C，也就是jaal</p>
+</div><p>进入main函数，关联伪代码与汇编，首先打开汇编IDA View-A与伪代码Pseudocode-A，拖动成主界面的两栏，在Pseudocode-A中左键并如图选择关联，就会发现伪代码成功与汇编对应</p>
+<img src="27.png" style="width: 80%;" />
+<p>既然控制的是返回值，return的时候ra与pc寄存器会产生变化，这里便重点分析return语句，在ra寄存器的汇编处打几个断点</p>
+<img src="28.png" style="width: 80%;" />
+<p>运行程序后进行调试，可以程序由于<code>6A61616C</code>地址非法而报错，</p>
 <img src="25.png" style="width: 80%;" />
-<p>在字符串中成功定位</p>
+<p>右上角general registers中也能看到ra和pc寄存器都变成了6A61616C</p>
+<img src="29.png" style="width: 80%;" />
+<p>这个十六进制转成字符串也就是<code>jaal</code>，在HNAP_AUTH中定位，得知是在第<code>1137</code>字节，</p>
+<img src="26.png" style="width: 80%;" />
+<p>为了进行验证，我这里将jaal的部分替换成了t4t4并修改程序，重新进行调试后，发现寄存器的值果然变成了0x74347434，也就是说这时我们已经可以控制返回地址，将目标地址放在第<code>1137</code>到<code>1140</code>字节就可以劫持程序执行流</p>
+<img src="30.png" style="width: 80%;" />
+<h3 id="构造利用链">构造利用链
+</h3><p>成功控制pc寄存器后，如果我们能将程序执行流劫持到system()函数，然后修改a0寄存器的值，便可以执行任意指令</p>
+<p>为了不破坏程序执行流，首先尝试在main函数中寻找system()</p>
 
 </section>
 
@@ -1118,7 +1131,7 @@ unicode: "f6d2"
       共发表文章 
       <span class="number-highlight">33</span> 
       篇 ，总计 
-      <span class="number-highlight">163.14</span> 
+      <span class="number-highlight">163.47</span> 
       k 字
   </div>
   <div>
@@ -1327,9 +1340,9 @@ if (busuanziValue) {
 </style>
 
 
-<script src="/js/renderer.js?v=1791567233"></script>
+<script src="/js/renderer.js?v=1792614680"></script>
 
-<script defer src="/js/codex-bg-motion.js?v=1791567233"></script>
+<script defer src="/js/codex-bg-motion.js?v=1792614680"></script>
 
 
 <script>
