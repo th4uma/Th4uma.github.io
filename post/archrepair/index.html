@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="前言\r隔了三个月没用Arch，进入后遇到了yay报错，滚了一下甚至直接挂掉了，还好前段时间保存过快照，这次便记录一下恢复的过程，与后续通过codex辅助搭建更适合我的环境\n">
+<title>Arch Linux滚挂恢复与进阶环境搭建</title>
+
+<link rel='canonical' href='https://th4uma.github.io/post/archrepair/'>
+
+<link rel="stylesheet" href="/scss/style.min.59006129943b9e5bd7b4e3edbeb36644aa13c68e56fcb5b6be2874bbd987d4d1.css"><meta property='og:title' content="Arch Linux滚挂恢复与进阶环境搭建">
+<meta property='og:description' content="前言\r隔了三个月没用Arch，进入后遇到了yay报错，滚了一下甚至直接挂掉了，还好前段时间保存过快照，这次便记录一下恢复的过程，与后续通过codex辅助搭建更适合我的环境\n">
+<meta property='og:url' content='https://th4uma.github.io/post/archrepair/'>
+<meta property='og:site_name' content='Thaumazein&#39;s Shelter'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-11-01T03:08:00&#43;08:00'/><meta property='article:modified_time' content='2026-11-01T03:08:00&#43;08:00'/>
+<meta name="twitter:title" content="Arch Linux滚挂恢复与进阶环境搭建">
+<meta name="twitter:description" content="前言\r隔了三个月没用Arch，进入后遇到了yay报错，滚了一下甚至直接挂掉了，还好前段时间保存过快照，这次便记录一下恢复的过程，与后续通过codex辅助搭建更适合我的环境\n">
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            localStorage.setItem(colorSchemeKey, "dark");
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu_c9c9d2a9fa32a02b.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">😋</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Thaumazein&#39;s Shelter</a></h1>
+            <h2 class="site-description">Keep on Keeping on!</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com/622057325'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <!--
+tags: [china, platform, streaming, video]
+category: Brand
+version: "2.1"
+unicode: "f6d2"
+-->
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="32"
+  height="32"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="#000000"
+  stroke-width="1"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" />
+  <path d="M8 3l2 3" />
+  <path d="M16 3l-2 3" />
+  <path d="M9 13v-2" />
+  <path d="M15 11v2" />
+</svg>
+
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Th4uma'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://psnprofiles.com/Thaumazein--'
+                        target="_blank"
+                        title="PSN"
+                        rel="me"
+                    >
+                        
+                        
+                            <?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 30 30" width="30px" height="30px">    <path d="M 11.181641 3.7421875 L 11.181641 24.857422 L 15.761719 26.257812 L 15.761719 8.5761719 C 15.761719 8.0671719 15.761625 7.8135937 16.015625 7.5585938 C 16.142625 7.3045937 16.396391 7.3046406 16.650391 7.4316406 C 17.286391 7.6856406 17.669922 8.1948906 17.669922 9.2128906 L 17.669922 16.207031 C 19.195922 16.970031 20.466375 16.970031 21.484375 16.207031 C 22.502375 15.444031 23.011719 14.300578 23.011719 12.392578 C 23.012719 10.357578 22.630234 9.0853594 21.740234 8.0683594 C 20.977234 7.0503594 19.578969 6.1594375 17.542969 5.5234375 C 14.998969 4.7604375 12.835641 4.1241875 11.181641 3.7421875 z M 9.9101562 16.972656 L 4.0585938 19.007812 L 3.1699219 19.388672 C 1.7709219 20.024672 1.0078125 20.660875 1.0078125 21.296875 C 1.1348125 22.059875 1.388875 23.078844 3.296875 23.714844 C 5.077875 24.350844 6.4770625 24.604891 10.039062 23.587891 L 10.039062 21.296875 C 6.6030625 22.440875 6.0949375 22.314547 5.5859375 22.060547 C 5.0769375 21.806547 5.076125 21.550828 5.203125 21.423828 C 5.585125 21.169828 6.984375 20.660156 6.984375 20.660156 L 9.9101562 19.642578 L 9.9101562 16.972656 z M 22.853516 17.962891 C 22.440109 17.948984 22.026781 17.956531 21.613281 17.988281 C 20.214281 17.988281 18.941063 18.243 17.414062 18.625 L 17.414062 21.296875 L 20.212891 20.277344 L 21.738281 19.769531 C 21.738281 19.769531 22.375812 19.642625 22.757812 19.515625 C 23.393812 19.388625 24.15625 19.642578 24.15625 19.642578 C 24.53825 19.642578 24.792969 19.768438 24.792969 20.023438 C 24.919969 20.277438 24.665297 20.406156 24.029297 20.660156 L 22.630859 21.169922 L 17.542969 23.076172 L 17.542969 25.748047 L 19.832031 24.984375 L 26.191406 22.695312 L 26.955078 22.3125 C 28.481078 21.8035 29.117234 21.167297 28.990234 20.404297 C 28.990234 19.642297 28.100219 19.134 26.574219 18.625 C 25.333719 18.24325 24.093734 18.004609 22.853516 17.962891 z"/></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://qm.qq.com/q/86n1mKWhCE'
+                        target="_blank"
+                        title="QQ"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-qq"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 9.748a14.716 14.716 0 0 0 11.995 -.052c.275 -9.236 -11.104 -11.256 -11.995 .052z" /><path d="M18 10c.984 2.762 1.949 4.765 2 7.153c.014 .688 -.664 1.346 -1.184 .303c-.346 -.696 -.952 -1.181 -1.816 -1.456" /><path d="M17 16c.031 1.831 .147 3.102 -1 4" /><path d="M8 20c-1.099 -.87 -.914 -2.24 -1 -4" /><path d="M6 10c-.783 2.338 -1.742 4.12 -1.968 6.43c-.217 2.227 .716 1.644 1.16 .917c.296 -.487 .898 -.934 1.808 -1.347" /><path d="M15.898 13l-.476 -2" /><path d="M8 20l-1.5 1c-.5 .5 -.5 1 .5 1h10c1 0 1 -.5 .5 -1l-1.5 -1" /><path d="M13.75 7m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M10.25 7m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /></svg>
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/page/about/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/page/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/page/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#前言">前言</a></li>
+    <li><a href="#回滚系统">回滚系统</a>
+      <ol>
+        <li><a href="#文字终端">文字终端</a></li>
+        <li><a href="#timeshift恢复">Timeshift恢复</a></li>
+      </ol>
+    </li>
+    <li><a href="#同步启动文件">同步启动文件</a>
+      <ol>
+        <li><a href="#挂载恢复后的系统">挂载恢复后的系统</a></li>
+        <li><a href="#进入chroot">进入chroot</a></li>
+      </ol>
+    </li>
+    <li><a href="#恢复后的软件安装">恢复后的软件安装</a>
+      <ol>
+        <li><a href="#pacman数据库锁">Pacman数据库锁</a></li>
+        <li></li>
+        <li><a href="#安装codex-cli">安装Codex CLI</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/linux/" >
+                Linux
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/post/archrepair/">Arch Linux滚挂恢复与进阶环境搭建</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-11-01</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 4 分钟
+                </time>
+            </div>
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="前言">前言
+</h2><p>隔了三个月没用Arch，进入后遇到了yay报错，滚了一下甚至直接挂掉了，还好前段时间保存过快照，这次便记录一下恢复的过程，与后续通过codex辅助搭建更适合我的环境</p>
+<h2 id="回滚系统">回滚系统
+</h2><h3 id="文字终端">文字终端
+</h3><p>我的情况是卡在了进入图形界面前，也就是左上角有一个光标，鼠标可以在屏幕上移动的状态，按 <code>Ctrl + Alt + F3</code> 切换到文字终端，出现 <code>login:</code> 后输入Arch用户名，<code>Password:</code> 输入这个账户的登录密码</p>
+<p>可以正常登录，说明系统已经启动到能运行命令的阶段，不需要通过Live USB也能恢复。登录后查看一下SDDM的日志</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo journalctl -b -u sddm -n <span class="m">60</span> --no-pager
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>没有SDDM启动失败信息，就直接恢复快照</p>
+<img src="1.png" style="width: 100%;" />
+<h3 id="timeshift恢复">Timeshift恢复
+</h3><p>启动Timeshift的交互式恢复</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo timeshift --restore --skip-grub
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>由于GRUB还能正常引导到Arch，用 <code>--skip-grub</code> 跳过重新安装引导程序。输入一个更新之前能正常使用的快照序号</p>
+<img src="2.png" style="width: 100%;" />
+<p>检查将恢复的内容。这里显示的是 <code>/dev/nvme1n1p3(@)</code>，挂载点为 <code>/</code>，没有包含 <code>@home</code>，也就是只恢复系统，家目录保持原来的状态。确认后输入 <code>y</code></p>
+<p>末尾又出现了 <code>Failed to remove directory</code>和 <code>Ret=256</code>，但上面已经显示系统子卷恢复完成，之后也能正常挂载恢复出的系统，所以没有重新执行回滚</p>
+<img src="3.png" style="width: 100%;" />
+<blockquote>
+<p>btrfs模式会将原来的<code>@</code>移到恢复前快照目录，再从选中的快照创建一个新的 <code>@</code>。当前终端还在原来的系统中运行，重启以后才会使用恢复出的系统</p>
+<p>确认页面虽然写着恢复后会重启，但这次恢复完成后直接回到了终端，并没有自动重启</p>
+</blockquote>
+<h2 id="同步启动文件">同步启动文件
+</h2><h3 id="挂载恢复后的系统">挂载恢复后的系统
+</h3><p>我的根目录使用btrfs，但EFI分区单独挂载在<code>/boot</code>。这次回滚只恢复了根子卷，独立分区里的启动文件还需要另外处理</p>
+<blockquote>
+<p>根子卷的快照不包含单独挂载的 <code>/boot</code>分区。如果只恢复根目录，启动时可能加载更新后的内核，而系统里的内核模块已经退回旧版，两边就对不上了</p>
+</blockquote>
+<p>把恢复出的<code>@</code>挂载到<code>/mnt</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mkdir -p /mnt
+</span></span><span class="line"><span class="cl">sudo mount -o <span class="nv">subvol</span><span class="o">=</span>@ /dev/nvme1n1p3 /mnt
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>查看它的挂载表</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat /mnt/etc/fstab
+</span></span></code></pre></td></tr></table>
+</div>
+</div><img src="4.png" style="width: 100%;" />
+<p>这里可以看到我的挂载关系如下</p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>挂载点</th>
+					<th>分区</th>
+					<th>文件系统</th>
+					<th>子卷</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>/</code></td>
+					<td><code>/dev/nvme1n1p3</code></td>
+					<td>Btrfs</td>
+					<td><code>@</code></td>
+			</tr>
+			<tr>
+					<td><code>/home</code></td>
+					<td><code>/dev/nvme1n1p3</code></td>
+					<td>Btrfs</td>
+					<td><code>@home</code></td>
+			</tr>
+			<tr>
+					<td><code>/boot</code></td>
+					<td><code>/dev/nvme1n1p5</code></td>
+					<td>vfat</td>
+					<td>无</td>
+			</tr>
+	</tbody>
+</table></div>
+<h3 id="进入chroot">进入chroot
+</h3><p>挂载启动分区</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mount /dev/nvme1n1p5 /mnt/boot
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>把当前系统的设备和虚拟文件系统挂载进去</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mount --rbind --make-rslave /dev /mnt/dev
+</span></span><span class="line"><span class="cl">sudo mount --rbind --make-rslave /proc /mnt/proc
+</span></span><span class="line"><span class="cl">sudo mount --rbind --make-rslave /sys /mnt/sys
+</span></span><span class="line"><span class="cl">sudo mount --rbind --make-rslave /run /mnt/run
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>进入恢复出的系统环境</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo chroot /mnt /bin/bash
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>提示符变成 <code>[root@thaumazein /]#</code>，之后的命令就在恢复出的系统里面执行</p>
+<img src="5.png" style="width: 100%;" />
+<p>将三个内核分别复制到 <code>/boot</code>对应的位置</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cp -v /usr/lib/modules/*-arch*/vmlinuz /boot/vmlinuz-linux
+</span></span><span class="line"><span class="cl">cp -v /usr/lib/modules/*-lts/vmlinuz /boot/vmlinuz-linux-lts
+</span></span><span class="line"><span class="cl">cp -v /usr/lib/modules/*-zen*/vmlinuz /boot/vmlinuz-linux-zen
+</span></span></code></pre></td></tr></table>
+</div>
+</div><img src="6.png" style="width: 100%;" />
+<blockquote>
+<p>initramfs是启动早期使用的临时根文件系统，里面包含挂载真正根目录所需的驱动和工具。内核退回旧版以后，也需要重新生成与它匹配的镜像</p>
+</blockquote>
+<p>根据全部预设重新生成initramfs镜像</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkinitcpio -P
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>显示生成成功</p>
+<img src="7.png" style="width: 100%;" />
+<p>退出chroot，卸载后重启</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">exit</span>
+</span></span><span class="line"><span class="cl">sudo umount -R /mnt <span class="o">&amp;&amp;</span> sudo reboot
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重启后成功进入KDE Plasma，终端也可以正常使用，系统恢复成功</p>
+<h2 id="恢复后的软件安装">恢复后的软件安装
+</h2><p>回到桌面以后也不敢马上再执行 <code>pacman -Syu</code>，准备先处理需要的软件，结果又碰到了数据库锁和命令找不到的问题</p>
+<h3 id="pacman数据库锁">Pacman数据库锁
+</h3><p>使用yay构建软件包过程中出现了大量这样的报错</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">yay -S electron32-bin
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">Error while writing index
+</span></span><span class="line"><span class="cl">No debugging symbols
+</span></span><span class="line"><span class="cl">gdb-add-index: No index was created
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这部分发生在生成调试索引时，<code>No debugging symbols</code>说明对应文件没有可用的调试符号。<code>electron32-bin</code>本身是预编译的软件包，这次虽然刷了很多报错，但后面依旧显示</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">==&gt; 完成创建: electron32-bin 32.3.3-2
+</span></span><span class="line"><span class="cl">==&gt; 正在清理...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>也就是软件包已经构建成功，刚刚的调试索引报错没有让这次构建中止</p>
+<h3 id="">
+</h3><p>构建结束后又卡在了这里，等了大约一小时也没有进展</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">/var/lib/pacman/db.lck 存在。
+</span></span><span class="line"><span class="cl">可能还有另一个 Pacman 实例在运行。等待中...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p><code>db.lck</code>是Pacman的数据库锁，用来防止多个包管理进程同时修改数据库。正常结束后会释放，异常中断时则可能留下锁文件，因此需要先确认有没有其他安装或更新正在进行</p>
+</blockquote>
+<p>新开一个Konsole标签页，查看相关进程</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps -eo pid,ppid,stat,etime,args <span class="p">|</span> grep -E <span class="s1">&#39;[p]acman|[y]ay|[p]amac|[p]ackagekit&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>我这里只看到了正在等待的 <code>yay -S electron32-bin</code>，没有发现其他Pacman进程在运行，判断大概率是残留锁。确认没有其他进程正在修改数据库后，删除锁文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo rm /var/lib/pacman/db.lck
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>原来的yay终端立即继续执行</p>
+<h3 id="安装codex-cli">安装Codex CLI
+</h3><p>虑到刚刚才处理过Pacman和AUR的问题，这里用了独立安装脚本</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl -fsSL https://chatgpt.com/codex/install.sh <span class="p">|</span> sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>显示安装成功，安装到的版本是 <code>0.166.0</code>。脚本询问要不要立即启动，输入 <code>y</code>后却没有正常进入，手动运行也找不到命令</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">codex
+</span></span><span class="line"><span class="cl">zsh: command not found: codex
+</span></span></code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p>安装脚本已经把路径写进了 <code>~/.zshrc</code>，但当前的Zsh还没有重新加载配置，因此当前 <code>PATH</code>中没有Codex的路径</p>
+</blockquote>
+<p>重新加载配置后再运行</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">source</span> ~/.zshrc
+</span></span><span class="line"><span class="cl">codex
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    
+
+    
+        
+        <div id="viewCount">
+            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-eye"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" /></svg>
+            <time class="article-time--reading">
+                <span id="vercount_value_page_pv">loading... </span>次
+            </time>
+        </div>
+        
+    <style>
+         
+        #viewCount,
+        #viewCount * {
+            color: #ffffffe1 !important;
+        }
+        #viewCount {
+             position: absolute;   
+             left: 280px;            
+             transform: translateY(-50%) translateY(260px);
+        }
+    </style>
+    </footer>
+
+
+    
+        <link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI&#43;WdtXRGWt2kTvGFasHpSy3SV"crossorigin="anonymous"
+            ><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG&#43;vnGctmUb0ZY0l8"crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"integrity="sha384-&#43;VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4&#43;/RRE05"crossorigin="anonymous"
+                defer
+                >
+            </script><script>
+    window.addEventListener("DOMContentLoaded", () => {
+	const mainArticleElement = document.querySelector(".main-article");
+        renderMathInElement(mainArticleElement, {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true }
+            ],
+            ignoredClasses: ["gist"]
+        });})
+</script>
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="has-image">
+    <a href="/post/linux_kernel/">
+        
+        
+            <div class="article-image">
+                
+                    <img src="/images/cover/lk.jpg" loading="lazy" data-key="" data-hash="/images/cover/lk.jpg"/>
+                
+            </div>
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Linux 内核编译及添加系统调用</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="has-image">
+    <a href="/post/arch_after/">
+        
+        
+            <div class="article-image">
+                
+                    <img src="/images/cover/arch.jpg" loading="lazy" data-key="" data-hash="/images/cover/arch.jpg"/>
+                
+            </div>
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Arch Linux &#43; KDE Plasma 基本设置与美化</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="has-image">
+    <a href="/post/archlinux/">
+        
+        
+            <div class="article-image">
+                
+                    <img src="/images/cover/linux.jpg" loading="lazy" data-key="" data-hash="/images/cover/linux.jpg"/>
+                
+            </div>
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Arch Linux &#43; Windows双系统安装与配置</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+        
+            
+  <div id="like-container">
+    <img id="like-icon" src="/icons/thumb-up.svg" alt="Like" />
+    <span id="like-count">0</span>
+  </div>
+
+  <style>
+    #like-container {
+      text-align: center;
+	display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 2rem 0;
+  margin: -3rem 0 -5rem 0rem;
+      user-select: none;
+      color: white;
+    }
+
+    #like-icon {
+      width: 33px;
+      height: 36px;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+      filter: brightness(0) invert(1);
+    }
+
+    #like-icon.clicked {
+      animation: bounce 0.4s ease;
+    }
+
+    @keyframes bounce {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.4); }
+      100% { transform: scale(1); }
+    }
+
+    #like-count {
+      display: inline-block;
+      margin-left: 0px;
+      font-size: 1.5rem; 
+    }
+  </style>
+
+  <script>
+  (function () {
+    const appId = 'QMq4HFQshcHbTkGqUoX10lDK-gzGzoHsz';
+    const appKey = 'MgjYDq8Uwr9g8x8HEJ24tyEB';
+    const serverURL = 'https://qmz4hfqs.lc-cn-n1-shared.com';
+
+    const pagePath = window.location.pathname;
+    const localKey = 'liked_' + pagePath;
+    const maxLikes = 50;
+    const headers = {
+      'X-LC-Id': appId,
+      'X-LC-Key': appKey,
+      'Content-Type': 'application/json'
+    };
+
+    async function fetchLike() {
+      const res = await fetch(`${serverURL}/1.1/classes/Like?where=` + encodeURIComponent(JSON.stringify({ path: pagePath })), { headers });
+      const data = await res.json();
+      if (data.results.length > 0) {
+        return data.results[0];
+      } else {
+        const resNew = await fetch(`${serverURL}/1.1/classes/Like`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            path: pagePath,
+            count: 0,
+            ACL: {
+              "*": {
+                "read": true,
+                "write": true
+              }
+            }
+          })
+        });
+        return await resNew.json();
+      }
+    }
+
+    async function increaseLike(objectId) {
+      await fetch(`${serverURL}/1.1/classes/Like/${objectId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ count: { __op: 'Increment', amount: 1 } })
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const icon = document.getElementById('like-icon');
+      const count = document.getElementById('like-count');
+      const likedCount = parseInt(localStorage.getItem(localKey) || '0');
+
+      const data = await fetchLike();
+      count.textContent = data.count || 0;
+
+      icon.addEventListener('click', async () => {
+        let current = parseInt(localStorage.getItem(localKey) || '0');
+        if (current >= maxLikes) return;
+
+        icon.classList.add('clicked');
+        setTimeout(() => icon.classList.remove('clicked'), 400);
+
+        count.textContent = parseInt(count.textContent) + 1;
+        localStorage.setItem(localKey, current + 1);
+        await increaseLike(data.objectId);
+      });
+    });
+  })();
+  </script>
+
+
+
+
+
+        
+    
+
+	
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2025 - 
+        
+        2026 Thaumazein
+    </section>
+    <section class="count_info">
+  <div>
+      本站已不稳定运行
+      <span id="ds" class="running-days number-highlight"></span>
+      天
+      <span id="hs" class="running-days number-highlight"></span>
+      小时
+      <span id="ms" class="running-days number-highlight"></span>
+      分钟
+  </div>
+  <div>
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      共发表文章 
+      <span class="number-highlight">34</span> 
+      篇 ，总计 
+      <span class="number-highlight">167.14</span> 
+      k 字
+  </div>
+  <div>
+      <span id="busuanzi_container_site_pv">
+          本站总访问量：
+          <span id="busuanzi_value_site_pv" class="number-highlight"></span>
+          次
+      </span>
+  </div>
+</section>
+
+
+<script>
+let s1 = '2025-06-24'; 
+s1 = new Date(s1.replace(/-/g, "/"));
+let s2 = new Date();
+let timeDifference = s2.getTime() - s1.getTime();
+
+let days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+let hours = Math.floor((timeDifference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+let minutes = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
+
+
+const ds = document.getElementById('ds');
+const hs = document.getElementById('hs');
+const ms = document.getElementById('ms');
+
+ds.innerHTML = days;
+hs.innerHTML = hours;
+ms.innerHTML = minutes;
+
+
+ds.classList.add('number-highlight');
+hs.classList.add('number-highlight');
+ms.classList.add('number-highlight');
+
+
+const busuanziValue = document.getElementById('busuanzi_value_site_pv');
+if (busuanziValue) {
+    busuanziValue.classList.add('number-highlight');
+}
+</script>
+    
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    function backToTop() {
+      document.documentElement.scrollIntoView({
+        behavior: 'smooth',
+      })
+    }
+  
+    window.onload = function () {
+      let scrollTop =
+        this.document.documentElement.scrollTop || this.document.body.scrollTop
+      let totopBtn = this.document.getElementById('back-to-top')
+      if (scrollTop > 0) {
+        totopBtn.style.display = 'inline'
+      } else {
+        totopBtn.style.display = 'none'
+      }
+    }
+  
+    window.onscroll = function () {
+      let scrollTop =
+        this.document.documentElement.scrollTop || this.document.body.scrollTop
+      let totopBtn = this.document.getElementById('back-to-top')
+      if (scrollTop < 200) {
+        totopBtn.style.display = 'none'
+      } else {
+        totopBtn.style.display = 'inline'
+        totopBtn.addEventListener('click', backToTop, false)
+      }
+    }
+  </script>
+
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+<div id="particles-js" aria-hidden="true"></div>
+<div id="jsi-flying-fish-container"></div>
+
+<style>
+    #particles-js {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -2;
+        
+         
+        display: none;
+        
+    }
+    #jsi-flying-fish-container {
+        width: 100%;
+        height: 200px;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        z-index: -1;
+        opacity: 0.37;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    html, body {
+        position: relative;
+        min-height: 100%;
+    }  
+</style>
+
+
+<script src="/js/renderer.js?v=1793529086"></script>
+
+<script defer src="/js/codex-bg-motion.js?v=1793529086"></script>
+
+
+<script>
+  if (typeof RENDERER !== 'undefined') {
+    RENDERER.init();
+  }
+</script>
+
+<style>
+    .highlight {
+         
+        max-height: 600px;
+        overflow: hidden;
+    }
+
+    .code-show {
+        max-height: none !important;
+    }
+
+    .code-more-box {
+        width: 100%;
+        padding-top: 78px;
+        background-image: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 255, 0)), to(#fff));
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+    }
+
+    .code-more-btn {
+        display: block;
+        margin: auto;
+        width: 44px;
+        height: 22px;
+        background: #f0f0f5;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        padding-top: 6px;
+        cursor: pointer;
+    }
+
+    .code-more-img {
+        cursor: pointer !important;
+        display: block;
+        margin: auto;
+        width: 22px;
+        height: 16px;
+    }
+</style>
+
+<script>
+  function initCodeMoreBox() {
+    let codeBlocks = document.querySelectorAll(".highlight");
+    if (!codeBlocks) {
+      return;
+    }
+    codeBlocks.forEach(codeBlock => {
+      
+      if (codeBlock.scrollHeight <= codeBlock.clientHeight) {
+        return;
+      }
+      
+      
+      let codeMoreBox = document.createElement('div');
+      codeMoreBox.classList.add('code-more-box');
+      
+      let codeMoreBtn = document.createElement('span');
+      codeMoreBtn.classList.add('code-more-btn');
+      codeMoreBtn.addEventListener('click', () => {
+        codeBlock.classList.add('code-show');
+        codeMoreBox.style.display = 'none';
+        
+        window.dispatchEvent(new Event('resize'))
+      })
+      
+      let img = document.createElement('img');
+      img.classList.add('code-more-img');
+      img.src = "https://th4uma.github.io/icons/codeMore.png"
+      
+      codeMoreBtn.appendChild(img);
+      codeMoreBox.appendChild(codeMoreBtn);
+      codeBlock.appendChild(codeMoreBox)
+    })
+  }
+ 
+  initCodeMoreBox();
+</script>
+
+
+<style>
+@font-face {
+  font-family: 'songti';
+  src: url('/font/songti.ttf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Ubuntu-R';
+  src: url('/font/Ubuntu-R.ttf') format('opentype');
+}
+
+:root {
+  --base-font-family: 'songti';
+   
+  --code-font-family: ui-monospace, "Cascadia Mono", "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+body {
+  font-family: var(--base-font-family), sans-serif;
+  background: url(https://th4uma.github.io/background/bg.png) no-repeat center top;
+  background-size: cover;
+  background-attachment: fixed;
+}
+</style>
+
+
+<script defer src="https://cn.vercount.one/js"></script>
+
+
+<a href="#" id="back-to-top" title="返回顶部"></a>
+
+
+<style>
+  #back-to-top {
+    display: none;
+    position: fixed;
+    bottom: 5px;
+    right: 15px;
+    width: 40px;  
+    height: 40px;  
+    border-radius: 50%;  
+    background-color: #2b3947ab !important;
+    box-shadow: var(--shadow-l2);
+    font-size: 20px;  
+    text-align: center;
+    line-height: 38px;  
+    cursor: pointer;
+    transition:
+      transform 0.3s ease,
+      background-color 0.3s ease;  
+  }
+
+  #back-to-top:before {
+    content: "";
+    display: inline-block;
+    position: relative;
+    transform: rotate(135deg);
+    height: 8px;  
+    width: 8px;  
+    border-width: 0 0 2px 2px;
+    border-color: var(--back-to-top-color);
+    border-style: solid;
+  }
+
+  #back-to-top:hover {
+    transform: scale(1.1);  
+    background-color: var(--accent-background);  
+  }
+
+  #back-to-top:hover:before {
+    border-color: var(--accent-color);  
+  }
+
+   
+  @media screen and (max-width: 768px) {
+    #back-to-top {
+      bottom: 5px;
+      right: var(--container-padding);
+      width: 30px;  
+      height: 30px;
+      font-size: 16px;
+      line-height: 32px;
+    }
+  }
+
+  @media screen and (min-width: 1024px) {
+    #back-to-top {
+      bottom: 10px;
+      right: 20px;
+    }
+  }
+
+  @media screen and (min-width: 1280px) {
+    #back-to-top {
+      bottom: 15px;
+      right: 25px;
+    }
+  }
+
+  @media screen and (min-width: 1536px) {
+    #back-to-top {
+      bottom: 15px;
+      right: 25px;
+       
+    }
+  }
+</style>
+
+
+    </body>
+</html>

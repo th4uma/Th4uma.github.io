@@ -7,7 +7,15 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh-cn</language>
         <copyright>Thaumazein</copyright>
-        <lastBuildDate>Wed, 26 Aug 2026 12:48:02 +0800</lastBuildDate><atom:link href="https://th4uma.github.io/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Sun, 01 Nov 2026 03:08:00 +0800</lastBuildDate><atom:link href="https://th4uma.github.io/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>Linux</title>
+        <link>https://th4uma.github.io/categories/linux/</link>
+        <pubDate>Sun, 01 Nov 2026 03:08:00 +0800</pubDate>
+        
+        <guid>https://th4uma.github.io/categories/linux/</guid>
+        <description></description>
+        </item>
+        <item>
         <title>IoT</title>
         <link>https://th4uma.github.io/categories/iot/</link>
         <pubDate>Wed, 26 Aug 2026 12:48:02 +0800</pubDate>
@@ -93,14 +101,6 @@
         <pubDate>Mon, 27 Apr 2026 01:35:02 +0800</pubDate>
         
         <guid>https://th4uma.github.io/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/</guid>
-        <description></description>
-        </item>
-        <item>
-        <title>Linux</title>
-        <link>https://th4uma.github.io/categories/linux/</link>
-        <pubDate>Wed, 22 Apr 2026 21:45:02 +0800</pubDate>
-        
-        <guid>https://th4uma.github.io/categories/linux/</guid>
         <description></description>
         </item>
         <item>
